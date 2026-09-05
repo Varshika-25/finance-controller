@@ -1,0 +1,1609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aegis — AI Finance Controller</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --ink:#0E1A26;
+  --ink-2:#152736;
+  --ink-3:#1D3446;
+  --paper:#F2F4F3;
+  --paper-2:#FFFFFF;
+  --line:#DCE2E1;
+  --line-soft:#E9ECEB;
+  --ledger:#1F5B4E;
+  --ledger-light:#E4EEEA;
+  --amber:#9C6B12;
+  --amber-light:#F5EAD3;
+  --crimson:#A93A32;
+  --crimson-light:#F6E4E1;
+  --blue:#2E5C8A;
+  --blue-light:#E4ECF4;
+  --slate:#5B6B72;
+  --slate-2:#8A969B;
+  --text:#132029;
+  --radius-s:6px;
+  --radius-m:10px;
+  --radius-l:16px;
+  --shadow:0 1px 2px rgba(14,26,38,.06), 0 8px 24px -12px rgba(14,26,38,.12);
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:'Manrope',sans-serif;
+  background:var(--paper);
+  color:var(--text);
+  -webkit-font-smoothing:antialiased;
+  min-height:100vh;
+}
+.mono{font-family:'IBM Plex Mono',monospace;}
+h1,h2,h3,h4{margin:0;font-family:'Manrope',sans-serif;letter-spacing:-0.01em;}
+p{margin:0;}
+button{font-family:inherit;cursor:pointer;}
+a{color:inherit;text-decoration:none;}
+::selection{background:var(--ledger);color:#fff;}
+.screen{display:none;min-height:100vh;}
+.screen.active{display:flex;}
+.hidden{display:none !important;}
+
+/* ---------- Buttons ---------- */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  padding:13px 22px;border-radius:var(--radius-s);border:1px solid transparent;
+  font-size:14.5px;font-weight:600;transition:transform .15s ease, box-shadow .15s ease, background .15s ease;
+}
+.btn:active{transform:translateY(1px);}
+.btn-primary{background:var(--ink);color:#fff;}
+.btn-primary:hover{background:#08131c;box-shadow:0 6px 18px -8px rgba(14,26,38,.5);}
+.btn-ledger{background:var(--ledger);color:#fff;}
+.btn-ledger:hover{background:#194a40;}
+.btn-outline{background:transparent;color:var(--ink);border-color:var(--line);}
+.btn-outline:hover{border-color:var(--ink);}
+.btn-ghost{background:transparent;color:var(--slate);border:none;}
+.btn-ghost:hover{color:var(--ink);}
+.btn-sm{padding:8px 14px;font-size:13px;border-radius:var(--radius-s);}
+.btn-block{width:100%;}
+.btn[disabled]{opacity:.45;pointer-events:none;}
+
+/* ---------- Welcome ---------- */
+#screen-welcome{background:var(--ink);color:#fff;overflow:hidden;position:relative;}
+.welcome-wrap{display:flex;width:100%;min-height:100vh;}
+.welcome-left{
+  flex:1 1 54%;padding:64px 72px;display:flex;flex-direction:column;justify-content:space-between;
+  position:relative;z-index:2;
+}
+.welcome-right{
+  flex:1 1 46%;position:relative;background:var(--ink-2);
+  border-left:1px solid rgba(255,255,255,.06);
+  overflow:hidden;
+}
+.brandmark{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;letter-spacing:.02em;}
+.brandmark .dot{width:9px;height:9px;border-radius:50%;background:var(--ledger);box-shadow:0 0 0 4px rgba(31,91,78,.35);}
+.welcome-hero{max-width:560px;margin-top:40px;}
+.welcome-hero .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:#8fb3a5;margin-bottom:18px;display:flex;gap:10px;align-items:center;}
+.welcome-hero .eyebrow span.seg{opacity:.55;}
+.welcome-hero h1{font-size:52px;line-height:1.05;font-weight:700;color:#fff;}
+.welcome-hero h1 em{font-style:normal;color:#9FCBBD;}
+.welcome-hero .sub{margin-top:22px;font-size:16.5px;line-height:1.65;color:#B9C4CB;max-width:480px;}
+.welcome-actions{display:flex;gap:14px;margin-top:34px;}
+.welcome-actions .btn{padding:14px 26px;font-size:15px;}
+.welcome-foot{display:flex;gap:36px;color:#748792;font-size:13px;}
+.welcome-foot .stat b{display:block;color:#fff;font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:600;}
+#ledgerCanvas{position:absolute;inset:0;width:100%;height:100%;}
+.welcome-right .caption{position:absolute;bottom:28px;left:32px;right:32px;color:#7C8D95;font-size:12.5px;font-family:'IBM Plex Mono',monospace;display:flex;justify-content:space-between;}
+
+/* ---------- Auth cards ---------- */
+#screen-signup,#screen-signin{background:var(--paper);align-items:center;justify-content:center;}
+.auth-card{
+  width:100%;max-width:520px;background:var(--paper-2);border:1px solid var(--line);border-radius:var(--radius-l);
+  padding:44px 44px 36px;box-shadow:var(--shadow);
+}
+.auth-topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:30px;}
+.step-track{display:flex;gap:6px;}
+.step-dot{width:26px;height:4px;border-radius:2px;background:var(--line);}
+.step-dot.done{background:var(--ledger);}
+.step-dot.now{background:var(--ink);}
+.auth-card h2{font-size:24px;font-weight:700;}
+.auth-card .lede{color:var(--slate);font-size:14.5px;margin-top:8px;line-height:1.55;}
+.field{margin-top:20px;}
+.field label{display:block;font-size:12.5px;font-weight:600;color:var(--slate);margin-bottom:7px;letter-spacing:.01em;}
+.field input,.field select{
+  width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:var(--radius-s);
+  font-size:14.5px;font-family:inherit;background:#fff;color:var(--text);
+}
+.field input:focus,.field select:focus{outline:2px solid var(--ink);outline-offset:1px;border-color:var(--ink);}
+.field-row{display:flex;gap:14px;}
+.field-row .field{flex:1;}
+.type-toggle{display:flex;gap:12px;margin-top:20px;}
+.type-card{
+  flex:1;border:1.5px solid var(--line);border-radius:var(--radius-m);padding:18px 16px;text-align:left;
+  background:#fff;transition:border-color .15s ease, background .15s ease;
+}
+.type-card .ic{font-size:22px;}
+.type-card .ttl{font-weight:700;margin-top:10px;font-size:14.5px;}
+.type-card .dsc{color:var(--slate);font-size:12.5px;margin-top:4px;line-height:1.45;}
+.type-card.selected{border-color:var(--ledger);background:var(--ledger-light);}
+.auth-actions{display:flex;justify-content:space-between;align-items:center;margin-top:30px;}
+.auth-switch{text-align:center;margin-top:22px;font-size:13.5px;color:var(--slate);}
+.auth-switch a{color:var(--ink);font-weight:700;border-bottom:1px solid var(--ink);}
+
+/* ---------- Face capture ---------- */
+.face-stage{
+  width:260px;height:260px;border-radius:50%;margin:26px auto 8px;position:relative;
+  background:var(--ink);overflow:hidden;border:1.5px solid var(--line);
+}
+.face-stage video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1);}
+.face-stage .ring{
+  position:absolute;inset:8px;border-radius:50%;border:3px solid rgba(31,91,78,.0);
+  transition:border-color .3s ease, box-shadow .3s ease;
+}
+.face-stage.detecting .ring{border-color:var(--ledger);box-shadow:0 0 0 4px rgba(31,91,78,.18);}
+.face-stage.fail .ring{border-color:var(--crimson);box-shadow:0 0 0 4px rgba(169,58,50,.18);}
+.face-stage .scan-line{
+  position:absolute;left:8%;right:8%;height:2px;background:linear-gradient(90deg,transparent,var(--ledger),transparent);
+  top:20%;opacity:0;
+}
+.face-stage.detecting .scan-line{opacity:1;animation:scanmove 1.6s ease-in-out infinite;}
+@keyframes scanmove{0%{top:15%;}50%{top:82%;}100%{top:15%;}}
+.face-stage .placeholder{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#5C7280;font-size:12px;font-family:'IBM Plex Mono',monospace;text-align:center;padding:20px;}
+.face-status{text-align:center;margin-top:16px;font-size:13.5px;color:var(--slate);min-height:20px;font-family:'IBM Plex Mono',monospace;}
+.face-status.ok{color:var(--ledger);font-weight:600;}
+.face-status.bad{color:var(--crimson);font-weight:600;}
+.face-tips{display:flex;flex-direction:column;gap:6px;margin-top:18px;font-size:13px;color:var(--slate-2);}
+.face-tips li{display:flex;gap:8px;align-items:flex-start;list-style:none;}
+.face-note{
+  margin-top:22px;padding:12px 14px;background:var(--amber-light);border:1px solid #E9D9B4;border-radius:var(--radius-s);
+  font-size:12px;color:#7A5A15;line-height:1.5;
+}
+
+/* ---------- Dashboard shell ---------- */
+#screen-dashboard{background:var(--paper);align-items:stretch;}
+.shell{display:flex;width:100%;min-height:100vh;}
+.sidebar{
+  width:250px;background:var(--ink);color:#DDE4E6;flex-shrink:0;display:flex;flex-direction:column;
+  padding:22px 16px;position:sticky;top:0;height:100vh;
+}
+.sidebar .brandmark{color:#fff;padding:6px 8px 22px;}
+.side-scroll{flex:1;overflow-y:auto;}
+.side-group{margin-bottom:6px;}
+.side-group-label{font-size:10.5px;letter-spacing:.08em;color:#5F7480;font-family:'IBM Plex Mono',monospace;padding:14px 12px 6px;}
+.side-link{
+  display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--radius-s);
+  font-size:13.8px;color:#B9C4CA;font-weight:500;margin-bottom:2px;
+}
+.side-link .ic{width:16px;text-align:center;font-size:14px;}
+.side-link:hover{background:rgba(255,255,255,.05);color:#fff;}
+.side-link.active{background:var(--ledger);color:#fff;}
+.side-foot{border-top:1px solid rgba(255,255,255,.08);padding-top:14px;margin-top:10px;}
+.acct-pill{display:flex;align-items:center;gap:10px;padding:8px;border-radius:var(--radius-s);}
+.acct-pill:hover{background:rgba(255,255,255,.05);}
+.avatar{width:34px;height:34px;border-radius:50%;background:var(--ledger);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#fff;flex-shrink:0;}
+.acct-name{font-size:13px;font-weight:600;color:#fff;}
+.acct-sub{font-size:11.5px;color:#7C8D95;}
+
+.main{flex:1;min-width:0;display:flex;flex-direction:column;}
+.topbar{
+  height:66px;border-bottom:1px solid var(--line);background:var(--paper-2);display:flex;align-items:center;
+  justify-content:space-between;padding:0 28px;position:sticky;top:0;z-index:5;
+}
+.topbar .search{
+  display:flex;align-items:center;gap:8px;background:var(--paper);border:1px solid var(--line);border-radius:var(--radius-s);
+  padding:8px 12px;width:340px;color:var(--slate-2);font-size:13px;
+}
+.topbar-right{display:flex;align-items:center;gap:16px;}
+.icon-btn{width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:#fff;display:flex;align-items:center;justify-content:center;position:relative;font-size:14px;}
+.badge-dot{position:absolute;top:6px;right:6px;width:7px;height:7px;border-radius:50%;background:var(--crimson);border:1.5px solid #fff;}
+.content{padding:28px 32px 60px;flex:1;}
+.view{display:none;}
+.view.active{display:block;animation:fadein .25s ease;}
+@keyframes fadein{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:none;}}
+.view-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:22px;}
+.view-head h2{font-size:22px;font-weight:700;}
+.view-head .sub{color:var(--slate);font-size:13.5px;margin-top:4px;}
+
+/* ---------- Cards / grid ---------- */
+.grid{display:grid;gap:18px;}
+.grid-4{grid-template-columns:repeat(4,1fr);}
+.grid-3{grid-template-columns:repeat(3,1fr);}
+.grid-2{grid-template-columns:repeat(2,1fr);}
+.card{background:var(--paper-2);border:1px solid var(--line);border-radius:var(--radius-m);padding:20px;}
+.kpi .lbl{font-size:12.5px;color:var(--slate);font-weight:600;display:flex;justify-content:space-between;align-items:center;}
+.kpi .val{font-family:'IBM Plex Mono',monospace;font-size:26px;font-weight:600;margin-top:10px;letter-spacing:-.01em;}
+.kpi .delta{font-size:12.5px;margin-top:8px;font-weight:600;display:flex;align-items:center;gap:4px;}
+.delta.up{color:var(--ledger);}
+.delta.down{color:var(--crimson);}
+.delta.flat{color:var(--slate-2);}
+.card-title{font-size:14.5px;font-weight:700;margin-bottom:2px;}
+.card-sub{font-size:12px;color:var(--slate-2);margin-bottom:14px;}
+.section-title{font-size:16px;font-weight:700;margin:32px 0 14px;display:flex;align-items:center;justify-content:space-between;}
+
+/* risk pill */
+.risk-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:20px;font-size:11.5px;font-weight:700;font-family:'IBM Plex Mono',monospace;}
+.risk-low{background:var(--ledger-light);color:var(--ledger);}
+.risk-moderate{background:var(--amber-light);color:var(--amber);}
+.risk-high{background:var(--crimson-light);color:var(--crimson);}
+.dot-ind{width:7px;height:7px;border-radius:50%;background:currentColor;}
+
+/* tables */
+table{width:100%;border-collapse:collapse;font-size:13.5px;}
+thead th{text-align:left;font-size:11px;text-transform:none;letter-spacing:.03em;color:var(--slate-2);font-weight:700;padding:0 12px 10px;border-bottom:1px solid var(--line);font-family:'IBM Plex Mono',monospace;}
+tbody td{padding:13px 12px;border-bottom:1px solid var(--line-soft);}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr:hover{background:var(--paper);}
+td.num,th.num{text-align:right;font-family:'IBM Plex Mono',monospace;}
+.status-tag{padding:3px 9px;border-radius:5px;font-size:11.5px;font-weight:700;}
+.status-paid,.status-done{background:var(--ledger-light);color:var(--ledger);}
+.status-pending,.status-processing{background:var(--amber-light);color:var(--amber);}
+.status-late,.status-overdue{background:var(--crimson-light);color:var(--crimson);}
+.status-due,.status-due-today{background:var(--blue-light);color:var(--blue);}
+.status-cleared,.status-scheduled,.status-current{background:var(--ledger-light);color:var(--ledger);}
+
+/* alerts / insight cards */
+.alert{display:flex;gap:14px;padding:16px 18px;border-radius:var(--radius-m);border:1px solid var(--line);margin-bottom:12px;background:#fff;}
+.alert .sev{width:9px;height:9px;border-radius:50%;flex-shrink:0;margin-top:6px;}
+.sev-critical{background:var(--crimson);}
+.sev-high{background:#C97A2E;}
+.sev-medium{background:var(--amber);}
+.sev-positive{background:var(--ledger);}
+.alert-body{flex:1;}
+.alert-title{font-weight:700;font-size:14px;}
+.alert-tag{font-size:10.5px;font-weight:700;letter-spacing:.04em;color:var(--slate-2);font-family:'IBM Plex Mono',monospace;margin-bottom:4px;display:block;}
+.alert-detail{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px;font-size:12.5px;}
+.alert-detail div b{display:block;color:var(--slate);font-weight:700;font-size:11px;text-transform:none;margin-bottom:3px;}
+.alert-actions{margin-top:12px;display:flex;gap:8px;}
+
+/* chat */
+.chat-wrap{display:flex;flex-direction:column;height:calc(100vh - 220px);min-height:480px;background:#fff;border:1px solid var(--line);border-radius:var(--radius-m);overflow:hidden;}
+.chat-log{flex:1;overflow-y:auto;padding:22px;display:flex;flex-direction:column;gap:16px;}
+.msg{max-width:78%;padding:13px 16px;border-radius:12px;font-size:14px;line-height:1.55;}
+.msg.user{align-self:flex-end;background:var(--ink);color:#fff;border-bottom-right-radius:3px;}
+.msg.ai{align-self:flex-start;background:var(--paper);border:1px solid var(--line);border-bottom-left-radius:3px;}
+.msg.ai .ai-block{margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);font-size:12.5px;}
+.msg.ai .ai-block b{color:var(--slate);}
+.chat-suggest{display:flex;flex-wrap:wrap;gap:8px;padding:14px 22px;border-top:1px solid var(--line);}
+.chip{padding:7px 12px;border:1px solid var(--line);border-radius:20px;font-size:12.5px;color:var(--slate);background:#fff;}
+.chip:hover{border-color:var(--ink);color:var(--ink);}
+.chat-input{display:flex;gap:10px;padding:16px;border-top:1px solid var(--line);}
+.chat-input input{flex:1;border:1px solid var(--line);border-radius:24px;padding:12px 18px;font-size:14px;font-family:inherit;}
+.chat-input input:focus{outline:none;border-color:var(--ink);}
+.chat-input button{width:44px;height:44px;border-radius:50%;background:var(--ink);color:#fff;border:none;font-size:16px;}
+
+/* goals */
+.goal-card{padding:18px;}
+.goal-bar{height:8px;background:var(--line-soft);border-radius:6px;overflow:hidden;margin:10px 0 8px;}
+.goal-bar > div{height:100%;background:var(--ledger);}
+.goal-row{display:flex;justify-content:space-between;font-size:12.5px;color:var(--slate);}
+
+/* misc */
+.tabs{display:flex;gap:4px;background:var(--paper);border:1px solid var(--line);padding:3px;border-radius:9px;width:fit-content;margin-bottom:18px;}
+.tab-btn{padding:8px 16px;border-radius:6px;font-size:13px;font-weight:600;color:var(--slate);border:none;background:transparent;}
+.tab-btn.active{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08);}
+.empty-state{text-align:center;padding:60px 20px;color:var(--slate-2);}
+.toast{position:fixed;bottom:26px;right:26px;background:var(--ink);color:#fff;padding:14px 20px;border-radius:var(--radius-s);font-size:13.5px;box-shadow:var(--shadow);z-index:100;display:flex;gap:10px;align-items:center;opacity:0;transform:translateY(10px);transition:all .25s ease;}
+.toast.show{opacity:1;transform:none;}
+.pill-btn{border:1px solid var(--line);background:#fff;padding:7px 13px;border-radius:7px;font-size:12.5px;font-weight:600;color:var(--slate);}
+.pill-btn.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+.modal-bg{position:fixed;inset:0;background:rgba(14,26,38,.5);display:none;align-items:center;justify-content:center;z-index:50;}
+.modal-bg.active{display:flex;}
+.modal{background:#fff;border-radius:var(--radius-l);padding:28px;width:100%;max-width:460px;max-height:88vh;overflow-y:auto;}
+.modal h3{font-size:17px;margin-bottom:16px;}
+.chart-box{position:relative;height:260px;}
+.chart-box.small{height:180px;}
+.risk-breakdown-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line-soft);}
+.risk-breakdown-row:last-child{border:none;}
+.risk-breakdown-row .rb-label{width:140px;font-size:13px;font-weight:600;}
+.risk-breakdown-row .rb-bar{flex:1;height:7px;background:var(--line-soft);border-radius:5px;overflow:hidden;}
+.risk-breakdown-row .rb-bar > div{height:100%;}
+@media (max-width: 980px){
+  .grid-4{grid-template-columns:repeat(2,1fr);}
+  .grid-3{grid-template-columns:repeat(2,1fr);}
+  .grid-2{grid-template-columns:1fr;}
+  .welcome-right{display:none;}
+  .sidebar{position:fixed;left:-260px;z-index:40;transition:left .2s ease;box-shadow:0 0 0 100vmax rgba(0,0,0,0);}
+  .sidebar.open{left:0;box-shadow:20px 0 60px rgba(0,0,0,.3);}
+  .topbar .search{display:none;}
+}
+@media (max-width: 600px){
+  .grid-4,.grid-3{grid-template-columns:1fr 1fr;}
+  .welcome-hero h1{font-size:36px;}
+  .auth-card{padding:30px 22px;}
+  .content{padding:20px 16px 60px;}
+}
+</style>
+</head>
+<body>
+
+<!-- ============ WELCOME ============ -->
+<section id="screen-welcome" class="screen active">
+  <div class="welcome-wrap">
+    <div class="welcome-left">
+      <div class="brandmark"><span class="dot"></span> AEGIS FINANCE</div>
+      <div class="welcome-hero">
+        <div class="eyebrow">MONITOR <span class="seg">/</span> DETECT <span class="seg">/</span> EXPLAIN <span class="seg">/</span> PREDICT <span class="seg">/</span> RECOMMEND</div>
+        <h1>Your books, <em>read out loud.</em></h1>
+        <p class="sub">Aegis watches every transaction, flags what's off, explains why it happened, and tells you what's likely to happen next — for your household or your company.</p>
+        <div class="welcome-actions">
+          <button class="btn btn-ledger" onclick="goTo('signup')">Sign up</button>
+          <button class="btn btn-outline" style="color:#fff;border-color:rgba(255,255,255,.3)" onclick="goTo('signin')">Sign in</button>
+        </div>
+      </div>
+      <div class="welcome-foot">
+        <div class="stat"><b>₹50L+</b>tracked in this demo ledger</div>
+        <div class="stat"><b>0</b>passwords required</div>
+        <div class="stat"><b>6</b>live anomalies detected today</div>
+      </div>
+    </div>
+    <div class="welcome-right">
+      <canvas id="ledgerCanvas"></canvas>
+      <div class="caption"><span>CASH POSITION — TRAILING 90 DAYS</span><span id="welcomeClock"></span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SIGN UP ============ -->
+<section id="screen-signup" class="screen">
+  <div class="auth-card">
+    <div class="auth-topbar">
+      <div class="step-track">
+        <div class="step-dot now" id="dot1"></div>
+        <div class="step-dot" id="dot2"></div>
+        <div class="step-dot" id="dot3"></div>
+      </div>
+      <button class="btn-ghost btn-sm" onclick="goTo('welcome')">✕ Close</button>
+    </div>
+
+    <!-- Step 1: account info -->
+    <div id="signup-step-1">
+      <h2>Create your account</h2>
+      <p class="lede">Tell us a little about yourself. No password needed — you'll finish setup with face verification.</p>
+      <div class="field"><label>Full name</label><input id="su-name" placeholder="e.g. Ananya Rao"></div>
+      <div class="field-row">
+        <div class="field"><label>Email</label><input id="su-email" type="email" placeholder="you@company.com"></div>
+        <div class="field"><label>Phone number</label><input id="su-phone" placeholder="+91 90000 00000"></div>
+      </div>
+      <div class="field">
+        <label>Account type</label>
+        <div class="type-toggle">
+          <button class="type-card selected" id="type-personal" onclick="selectAccountType('personal')">
+            <div class="ic">👤</div><div class="ttl">Personal</div><div class="dsc">Manage your own income, spending and goals.</div>
+          </button>
+          <button class="type-card" id="type-business" onclick="selectAccountType('business')">
+            <div class="ic">🏢</div><div class="ttl">Business</div><div class="dsc">Run payroll, cash flow and risk for a company.</div>
+          </button>
+        </div>
+      </div>
+      <div id="business-extra" class="hidden">
+        <div class="field"><label>Company name</label><input id="su-company" placeholder="e.g. Rao Textiles Pvt Ltd"></div>
+        <div class="field-row">
+          <div class="field"><label>Business type</label>
+            <select id="su-biztype"><option>Retail / E-commerce</option><option>Manufacturing</option><option>Services / Consulting</option><option>Technology</option><option>Other</option></select>
+          </div>
+          <div class="field"><label>Number of employees</label><input id="su-headcount" type="number" placeholder="e.g. 120"></div>
+        </div>
+      </div>
+      <div class="auth-actions">
+        <span></span>
+        <button class="btn btn-primary" onclick="goSignupStep(2)">Continue →</button>
+      </div>
+      <p class="auth-switch">Already have an account? <a onclick="goTo('signin')">Sign in</a></p>
+    </div>
+
+    <!-- Step 2: face registration -->
+    <div id="signup-step-2" class="hidden">
+      <h2>Register your face</h2>
+      <p class="lede">Your face will be used to securely verify your identity when you sign in — no password to remember or leak.</p>
+      <div class="face-stage" id="regStage">
+        <video id="regVideo" autoplay muted playsinline></video>
+        <div class="placeholder" id="regPlaceholder">Camera preview will appear here</div>
+        <div class="scan-line"></div>
+        <div class="ring"></div>
+      </div>
+      <div class="face-status" id="regStatus">Grant camera access to begin</div>
+      <ul class="face-tips">
+        <li>◦ Look directly at the camera</li>
+        <li>◦ Keep your face inside the frame, in good light</li>
+        <li>◦ Hold still for a moment while we scan</li>
+      </ul>
+      <div style="display:flex;gap:10px;margin-top:20px;">
+        <button class="btn btn-outline btn-block" id="regCamBtn" onclick="startCamera('reg')">Enable camera</button>
+        <button class="btn btn-primary btn-block hidden" id="regScanBtn" onclick="runFaceScan('register')">Scan my face</button>
+      </div>
+      <div class="face-note">Prototype notice: this hackathon build uses a simple in-browser face-presence check (via camera + face landmark heuristics), not production biometric authentication. A real deployment would need a secure biometric pipeline, encrypted template storage, and liveness detection.</div>
+      <div class="auth-actions"><button class="btn-ghost btn-sm" onclick="goSignupStep(1)">← Back</button><span></span></div>
+    </div>
+
+    <!-- Step 3: success -->
+    <div id="signup-step-3" class="hidden" style="text-align:center;padding:20px 0;">
+      <div style="font-size:52px;">✅</div>
+      <h2 style="margin-top:14px;">Face registration successful</h2>
+      <p class="lede">Your account has been created successfully. You're ready to see your financial control center.</p>
+      <button class="btn btn-ledger btn-block" style="margin-top:26px;" onclick="enterDashboard()">Go to my dashboard →</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SIGN IN ============ -->
+<section id="screen-signin" class="screen">
+  <div class="auth-card" style="text-align:center;">
+    <div style="text-align:left;"><button class="btn-ghost btn-sm" onclick="goTo('welcome')">✕ Close</button></div>
+    <h2>Welcome back</h2>
+    <p class="lede">Verify your identity to access your financial dashboard.</p>
+    <div class="face-stage" id="signinStage">
+      <video id="signinVideo" autoplay muted playsinline></video>
+      <div class="placeholder" id="signinPlaceholder">Starting camera…</div>
+      <div class="scan-line"></div>
+      <div class="ring"></div>
+    </div>
+    <div class="face-status" id="signinStatus">Initializing face scanner…</div>
+    <div id="signinFailBox" class="hidden" style="display:flex;gap:10px;margin-top:18px;">
+      <button class="btn btn-outline btn-block" onclick="runFaceScan('signin')">Try again</button>
+      <button class="btn-ghost btn-block" onclick="showToast('A one-time code has been sent to your registered email (demo).')">Secure account recovery</button>
+    </div>
+    <p class="auth-switch">New here? <a onclick="goTo('signup')">Create an account</a></p>
+  </div>
+</section>
+
+<!-- ============ DASHBOARD ============ -->
+<section id="screen-dashboard" class="screen">
+  <div class="shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="brandmark"><span class="dot"></span> AEGIS FINANCE</div>
+      <div class="side-scroll" id="sideNav"></div>
+      <div class="side-foot">
+        <div class="acct-pill">
+          <div class="avatar" id="sideAvatar">A</div>
+          <div>
+            <div class="acct-name" id="sideName">—</div>
+            <div class="acct-sub" id="sideSub">—</div>
+          </div>
+        </div>
+        <button class="side-link" style="margin-top:6px;" onclick="signOut()"><span class="ic">↩</span> Sign out</button>
+      </div>
+    </aside>
+
+    <div class="main">
+      <div class="topbar">
+        <div style="display:flex;align-items:center;gap:14px;">
+          <button class="icon-btn hidden" id="menuToggle" onclick="document.getElementById('sidebar').classList.toggle('open')" style="display:none;">☰</button>
+          <div class="search">🔎 <span id="searchPlaceholder">Search transactions, invoices, vendors…</span></div>
+        </div>
+        <div class="topbar-right">
+          <button class="icon-btn" onclick="jumpTo('insights')">🔔<span class="badge-dot"></span></button>
+          <button class="icon-btn" onclick="jumpTo('assistant')">✦</button>
+          <div class="avatar" id="topAvatar" style="width:34px;height:34px;">A</div>
+        </div>
+      </div>
+      <div class="content" id="content">
+        <div class="view" id="view-overview"></div>
+        <div class="view" id="view-revenue"></div>
+        <div class="view" id="view-expenses"></div>
+        <div class="view" id="view-transactions"></div>
+        <div class="view" id="view-payments"></div>
+        <div class="view" id="view-receivables"></div>
+        <div class="view" id="view-payables"></div>
+        <div class="view" id="view-savings"></div>
+        <div class="view" id="view-payroll"></div>
+        <div class="view" id="view-cashflow"></div>
+        <div class="view" id="view-loans"></div>
+        <div class="view" id="view-predictions"></div>
+        <div class="view" id="view-risk"></div>
+        <div class="view" id="view-insights"></div>
+        <div class="view" id="view-assistant"></div>
+        <div class="view" id="view-reports"></div>
+        <div class="view" id="view-settings"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="modal-bg" id="modalBg"><div class="modal" id="modalBody"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================= UTIL ================= */
+function fmtINR(n, opts){
+  opts = opts||{};
+  const neg = n<0; n = Math.abs(Math.round(n));
+  let s = n.toString();
+  let last3 = s.length>3 ? s.slice(-3) : s;
+  let rest = s.length>3 ? s.slice(0,-3) : '';
+  if(rest !== '') last3 = ',' + last3;
+  let formatted = rest.replace(/\B(?=(\d{2})+(?!\d))/g,',') + last3;
+  return (neg?'-':'') + '₹' + formatted + (opts.decimals ? '' : '');
+}
+function pct(n,d){ if(d===0) return 0; return (n/d)*100; }
+function clamp(n,a,b){return Math.max(a,Math.min(b,n));}
+function fmtDate(d){ return d.toLocaleDateString('en-IN',{day:'2-digit',month:'short'}); }
+function daysBetween(a,b){ return Math.round((b-a)/86400000); }
+function el(html){ const t=document.createElement('template'); t.innerHTML=html.trim(); return t.content.firstChild; }
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.innerHTML = msg;
+  t.classList.add('show');
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(()=>t.classList.remove('show'), 3200);
+}
+function openModal(html){
+  document.getElementById('modalBody').innerHTML = html;
+  document.getElementById('modalBg').classList.add('active');
+}
+function closeModal(){ document.getElementById('modalBg').classList.remove('active'); }
+document.addEventListener('click', e=>{ if(e.target.id==='modalBg') closeModal(); });
+function downloadText(filename, text){
+  const blob = new Blob([text], {type:'text/plain'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+}
+function seededRandom(seed){
+  let s = seed;
+  return function(){ s = (s*9301+49297)%233280; return s/233280; };
+}
+
+/* ================= SCREEN NAV ================= */
+function goTo(screen){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+screen).classList.add('active');
+  stopAllCameras();
+  if(screen==='signin'){ setTimeout(()=>{ startCamera('signin'); }, 250); }
+  if(screen==='signup'){ goSignupStep(1); }
+}
+
+/* ================= WELCOME CANVAS ================= */
+(function(){
+  const canvas = document.getElementById('ledgerCanvas');
+  const ctx = canvas.getContext('2d');
+  let w,h;
+  function resize(){ w=canvas.width=canvas.offsetWidth*2; h=canvas.height=canvas.offsetHeight*2; }
+  window.addEventListener('resize', resize);
+  resize();
+  const rnd = seededRandom(42);
+  const points = []; const N = 60;
+  let base = 300;
+  for(let i=0;i<N;i++){ base += (rnd()-0.42)*40; points.push(base); }
+  const gridLines = 5;
+  let t=0;
+  function draw(){
+    t += 0.006;
+    ctx.clearRect(0,0,w,h);
+    // grid
+    ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+    ctx.lineWidth = 1;
+    for(let i=1;i<gridLines;i++){
+      const y = (h/gridLines)*i;
+      ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke();
+    }
+    // animated ledger line
+    const min = Math.min(...points), max = Math.max(...points);
+    ctx.beginPath();
+    points.forEach((p,i)=>{
+      const x = (w/(N-1))*i;
+      const wobble = Math.sin(t*2 + i*0.5)*6;
+      const y = h - ((p-min)/(max-min))*(h*0.62) - h*0.16 + wobble;
+      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    });
+    ctx.strokeStyle = '#3E8271';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+    // fill
+    ctx.lineTo(w,h); ctx.lineTo(0,h); ctx.closePath();
+    const grad = ctx.createLinearGradient(0,0,0,h);
+    grad.addColorStop(0,'rgba(62,130,113,0.22)');
+    grad.addColorStop(1,'rgba(62,130,113,0)');
+    ctx.fillStyle = grad; ctx.fill();
+    // moving marker dot near the end
+    const idx = N-1;
+    const mx = (w/(N-1))*idx;
+    const my = h - ((points[idx]-min)/(max-min))*(h*0.62) - h*0.16 + Math.sin(t*2+idx*0.5)*6;
+    ctx.beginPath(); ctx.arc(mx,my,5,0,7); ctx.fillStyle='#9FCBBD'; ctx.fill();
+    requestAnimationFrame(draw);
+  }
+  draw();
+  function tick(){
+    const now = new Date();
+    document.getElementById('welcomeClock').textContent = now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    setTimeout(tick,1000);
+  }
+  tick();
+})();
+
+/* ================= FACE AUTH (prototype heuristic, not real biometrics) ================= */
+const cameraStreams = {};
+async function startCamera(which){
+  const videoEl = document.getElementById(which+'Video');
+  const placeholder = document.getElementById(which+'Placeholder');
+  const statusEl = document.getElementById(which==='reg'?'regStatus':'signinStatus');
+  try{
+    const stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'}, audio:false});
+    cameraStreams[which]=stream;
+    videoEl.srcObject = stream;
+    placeholder.classList.add('hidden');
+    if(which==='reg'){
+      document.getElementById('regCamBtn').classList.add('hidden');
+      document.getElementById('regScanBtn').classList.remove('hidden');
+      statusEl.textContent = 'Camera ready — position your face in the frame';
+    } else {
+      statusEl.textContent = 'Camera ready — hold still';
+      setTimeout(()=>runFaceScan('signin'), 900);
+    }
+  }catch(err){
+    placeholder.textContent = 'Camera unavailable. Continuing in demo mode (simulated scan).';
+    statusEl.textContent = which==='reg' ? 'Camera unavailable — demo scan enabled' : 'Camera unavailable — running demo scan';
+    if(which==='reg'){
+      document.getElementById('regCamBtn').classList.add('hidden');
+      document.getElementById('regScanBtn').classList.remove('hidden');
+    } else {
+      setTimeout(()=>runFaceScan('signin'), 900);
+    }
+  }
+}
+function stopAllCameras(){
+  Object.keys(cameraStreams).forEach(k=>{
+    if(cameraStreams[k]){ cameraStreams[k].getTracks().forEach(tr=>tr.stop()); delete cameraStreams[k]; }
+  });
+}
+function runFaceScan(mode){
+  const stageId = mode==='register' ? 'regStage' : 'signinStage';
+  const statusId = mode==='register' ? 'regStatus' : 'signinStatus';
+  const stage = document.getElementById(stageId);
+  const status = document.getElementById(statusId);
+  stage.classList.remove('fail'); stage.classList.add('detecting');
+  status.textContent = 'Scanning face…'; status.classList.remove('ok','bad');
+  document.getElementById(mode==='register'?'regScanBtn':'signinFailBox') && (mode==='signin' && document.getElementById('signinFailBox').classList.add('hidden'));
+  setTimeout(()=>{
+    // Prototype heuristic: succeed most of the time; on sign-in, occasionally simulate a failed match to demo the fallback path.
+    const success = mode==='register' ? true : (Math.random() > 0.15);
+    stage.classList.remove('detecting');
+    if(success){
+      status.textContent = mode==='register' ? '✅ Face captured successfully' : '✅ Identity verified successfully';
+      status.classList.add('ok');
+      if(mode==='register'){
+        setTimeout(()=>goSignupStep(3), 700);
+      } else {
+        setTimeout(()=>{ stopAllCameras(); enterDashboard(); }, 700);
+      }
+    } else {
+      stage.classList.add('fail');
+      status.textContent = '❌ Face not recognized';
+      status.classList.add('bad');
+      document.getElementById('signinFailBox').classList.remove('hidden');
+    }
+  }, 1800);
+}
+
+/* ================= SIGNUP FLOW ================= */
+let signupAccountType = 'personal';
+function selectAccountType(type){
+  signupAccountType = type;
+  document.getElementById('type-personal').classList.toggle('selected', type==='personal');
+  document.getElementById('type-business').classList.toggle('selected', type==='business');
+  document.getElementById('business-extra').classList.toggle('hidden', type!=='business');
+}
+function goSignupStep(n){
+  [1,2,3].forEach(i=>{
+    document.getElementById('signup-step-'+i).classList.toggle('hidden', i!==n);
+    const dot = document.getElementById('dot'+i);
+    if(dot){ dot.classList.toggle('now', i===n); dot.classList.toggle('done', i<n); }
+  });
+  if(n===2){ setTimeout(()=>startCamera('reg'), 200); }
+}
+
+/* ================= APP STATE ================= */
+let USER = null; // {name,email,phone,accountType,company,bizType,headcount}
+let DATA = null; // demo dataset
+let currentView = 'overview';
+const charts = {}; // registry to destroy/recreate
+
+function enterDashboard(){
+  const name = document.getElementById('su-name').value.trim() || 'Ananya Rao';
+  const email = document.getElementById('su-email').value.trim() || 'ananya@example.com';
+  const phone = document.getElementById('su-phone').value.trim() || '+91 90000 00000';
+  USER = {
+    name, email, phone,
+    accountType: signupAccountType,
+    company: document.getElementById('su-company').value.trim() || 'Rao Textiles Pvt Ltd',
+    bizType: document.getElementById('su-biztype').value || 'Retail / E-commerce',
+    headcount: document.getElementById('su-headcount').value || 120
+  };
+  buildDemoData();
+  buildSidebar();
+  document.getElementById('sideAvatar').textContent = name.charAt(0).toUpperCase();
+  document.getElementById('topAvatar').textContent = name.charAt(0).toUpperCase();
+  document.getElementById('sideName').textContent = USER.accountType==='business' ? USER.company : name;
+  document.getElementById('sideSub').textContent = USER.accountType==='business' ? 'Business account' : 'Personal account';
+  goTo('dashboard');
+  jumpTo('overview');
+  showToast('Welcome, '+name.split(' ')[0]+'. Your AI copilot has finished analyzing your data.');
+}
+function signOut(){
+  USER=null; DATA=null;
+  goTo('welcome');
+}
+
+/* ================= DEMO DATA GENERATION ================= */
+function buildDemoData(){
+  const rnd = seededRandom(USER.accountType==='business'?7:13);
+  const months = [];
+  const now = new Date();
+  for(let i=11;i>=0;i--){ const d=new Date(now.getFullYear(), now.getMonth()-i, 1); months.push(d.toLocaleDateString('en-IN',{month:'short'})); }
+
+  if(USER.accountType==='personal'){
+    const incomeBase = 80000, expenseBase=48000;
+    const incomeHist = months.map((m,i)=> Math.round(incomeBase*(1+ (rnd()-0.4)*0.06) + i*250));
+    const catBase = {Food:9500,Transport:5200,Education:4800,Shopping:7200,Bills:11200,Entertainment:3600,Other:6500};
+    const expenseHist = months.map((m,i)=>{
+      let sum=0; Object.values(catBase).forEach(v=>sum+= v*(1+(rnd()-0.45)*0.12));
+      return Math.round(sum);
+    });
+    // inject anomaly: last month shopping spike
+    const categories = Object.keys(catBase);
+    const catSpend = {}; categories.forEach(c=> catSpend[c] = Math.round(catBase[c]*(1+(rnd()-0.4)*0.1)));
+    catSpend['Shopping'] = Math.round(catBase['Shopping']*2.25); // unusual spending anomaly (~125% up)
+    expenseHist[expenseHist.length-1] = Object.values(catSpend).reduce((a,b)=>a+b,0);
+
+    const txns = [];
+    let txId=1000;
+    categories.forEach(cat=>{
+      const n = 3+Math.floor(rnd()*4);
+      for(let i=0;i<n;i++){
+        const day = 1+Math.floor(rnd()*27);
+        const amt = Math.round((catSpend[cat]/n)*(0.6+rnd()*0.8));
+        txns.push({id:txId++, date:new Date(now.getFullYear(),now.getMonth(),day), desc:sampleMerchant(cat,rnd), category:cat, amount:-amt, type:'Expense', account:'HDFC Savings •• 4417', status:'Cleared', risk: cat==='Shopping' && amt>catBase['Shopping']*0.7 ? 'High':'Low'});
+      }
+    });
+    txns.push({id:txId++, date:new Date(now.getFullYear(),now.getMonth(),1), desc:'Salary — Employer Pvt Ltd', category:'Income', amount:incomeHist[incomeHist.length-1], type:'Income', account:'HDFC Savings •• 4417', status:'Cleared', risk:'Low'});
+    // duplicate transaction anomaly
+    const dup = {id:txId++, date:new Date(now.getFullYear(),now.getMonth(),14), desc:'Zenith Electronics — UPI', category:'Shopping', amount:-6499, type:'Expense', account:'HDFC Savings •• 4417', status:'Cleared', risk:'Medium'};
+    const dup2 = {...dup, id:txId++, date:new Date(now.getFullYear(),now.getMonth(),14,0,3)};
+    txns.push(dup, dup2);
+    txns.sort((a,b)=>b.date-a.date);
+
+    const bills = [
+      {name:'Home rent', amount:18000, due:new Date(now.getFullYear(),now.getMonth(),1), paidOn:new Date(now.getFullYear(),now.getMonth(),1), status:'Paid'},
+      {name:'Electricity', amount:2400, due:new Date(now.getFullYear(),now.getMonth(),10), paidOn:new Date(now.getFullYear(),now.getMonth(),9), status:'Paid'},
+      {name:'Credit card bill', amount:14200, due:new Date(now.getFullYear(),now.getMonth(),18), paidOn:null, status:'Pending'},
+      {name:'Broadband', amount:1199, due:new Date(now.getFullYear(),now.getMonth(),5), paidOn:null, status:'Late'},
+      {name:'Insurance premium', amount:8600, due:new Date(now.getFullYear(),now.getMonth()-1,28), paidOn:null, status:'Overdue'},
+    ];
+
+    const goals = [
+      {name:'Emergency Fund', icon:'🛟', target:100000, current:65000},
+      {name:'Laptop', icon:'💻', target:80000, current:22000},
+      {name:'Goa Trip', icon:'✈️', target:45000, current:31000},
+    ];
+
+    const balance = incomeHist[incomeHist.length-1]-expenseHist[expenseHist.length-1];
+    const cashHist = []; let running = 40000;
+    for(let i=0;i<12;i++){ running += incomeHist[i]-expenseHist[i]; cashHist.push(Math.round(running)); }
+
+    DATA = {months, incomeHist, expenseHist, catSpend, catBase, txns, bills, goals, cashHist, balance};
+  } else {
+    const revBase=5000000, expBase=3800000;
+    const revHist = months.map((m,i)=> Math.round(revBase*(1+ i*0.012 + (rnd()-0.45)*0.05)));
+    const expHist = months.map((m,i)=> Math.round(expBase*(1+ i*0.01 + (rnd()-0.45)*0.05)));
+    // anomalies: office expense +75%, payroll +18% last month
+    const catBase = {Payroll:1200000, Rent:250000, Utilities:120000, Suppliers:900000, Marketing:380000, Operations:420000, 'Loan EMI':180000, Office:200000, Other:150000};
+    const catCurrent = {}; Object.keys(catBase).forEach(k=> catCurrent[k]=Math.round(catBase[k]*(1+(rnd()-0.4)*0.08)));
+    catCurrent['Office'] = Math.round(catBase['Office']*1.75);
+    catCurrent['Payroll'] = Math.round(catBase['Payroll']*1.18);
+    expHist[expHist.length-1] = Object.values(catCurrent).reduce((a,b)=>a+b,0);
+    revHist[revHist.length-1] = Math.round(revBase*1.12*(1+11*0.012));
+
+    const employees=[]; const depts=['Sales','Operations','Engineering','Finance','HR','Support'];
+    const empNames=['R. Sharma','A. Verma','K. Nair','S. Iyer','P. Gupta','M. Khan','D. Joshi','N. Reddy','V. Menon','T. Bose','L. Pillai','J. Rao'];
+    let baseTotalPayroll=0;
+    empNames.forEach((name,i)=>{
+      const basic = 32000+Math.floor(rnd()*38000);
+      const allow = Math.round(basic*0.22);
+      const bonus = i===2 ? Math.round(basic*0.6) : Math.round(rnd()*3000);
+      const ot = i===5 ? Math.round(basic*0.35) : Math.round(rnd()*2500);
+      const ded = Math.round((basic+allow)*0.09);
+      const gross = basic+allow+bonus+ot;
+      const net = gross-ded;
+      baseTotalPayroll += net;
+      employees.push({id:'EMP'+(101+i), name, dept:depts[i%depts.length], basic,allow,bonus,ot,ded,gross,net,
+        status: i===9?'Pending': (i===7?'Processing':'Paid'), payDate:new Date(now.getFullYear(),now.getMonth(),1)});
+    });
+
+    const receivables = [
+      {customer:'Meridian Retail Co.', invoice:'INV-2291', amount:200000, due:new Date(now.getFullYear(),now.getMonth(),now.getDate()+5), status:'Pending', risk:'Medium'},
+      {customer:'Sunrise Apparel Ltd.', invoice:'INV-2278', amount:450000, due:new Date(now.getFullYear(),now.getMonth(),now.getDate()-20), status:'Overdue', risk:'High'},
+      {customer:'Kavya Distributors', invoice:'INV-2299', amount:120000, due:new Date(now.getFullYear(),now.getMonth(),now.getDate()), status:'Due Today', risk:'Medium'},
+      {customer:'Orbit Fashions', invoice:'INV-2301', amount:310000, due:new Date(now.getFullYear(),now.getMonth(),now.getDate()+12), status:'Pending', risk:'Low'},
+      {customer:'Novara Traders', invoice:'INV-2265', amount:95000, due:new Date(now.getFullYear(),now.getMonth(),now.getDate()-3), status:'Overdue', risk:'Medium'},
+    ];
+    const payables = [
+      {supplier:'Vishnu Textile Mills', invoice:'PO-8821', amount:180000, due:new Date(now.getFullYear(),now.getMonth(),now.getDate()+3), status:'Pending', priority:'High'},
+      {supplier:'Vishnu Textile Mills', invoice:'PO-8821-B', amount:180000, due:new Date(now.getFullYear(),now.getMonth(),now.getDate()+3), status:'Pending', priority:'High', dupOf:'PO-8821'},
+      {supplier:'Coastal Logistics', invoice:'PO-8790', amount:96000, due:new Date(now.getFullYear(),now.getMonth(),now.getDate()+6), status:'Scheduled', priority:'Medium'},
+      {supplier:'Bright Packaging Co.', invoice:'PO-8804', amount:64000, due:new Date(now.getFullYear(),now.getMonth(),now.getDate()+1), status:'Pending', priority:'High'},
+      {supplier:'Prime Office Supplies', invoice:'PO-8812', amount:42000, due:new Date(now.getFullYear(),now.getMonth(),now.getDate()+9), status:'Scheduled', priority:'Low'},
+    ];
+
+    const cashHist=[]; let running=8500000;
+    for(let i=0;i<12;i++){ running += revHist[i]-expHist[i]; cashHist.push(Math.round(running)); }
+    const cashBalance = 1500000;
+    const loans = 2000000, receivablesTotal = receivables.reduce((a,r)=>a+r.amount,0), payablesTotal = payables.filter(p=>!p.dupOf).reduce((a,r)=>a+r.amount,0);
+
+    const txns=[];
+    let txId=5000;
+    Object.keys(catCurrent).forEach(cat=>{
+      const n=2+Math.floor(rnd()*3);
+      for(let i=0;i<n;i++){
+        const day=1+Math.floor(rnd()*27);
+        const amt=Math.round((catCurrent[cat]/n)*(0.7+rnd()*0.6));
+        txns.push({id:txId++, date:new Date(now.getFullYear(),now.getMonth(),day), desc:sampleVendor(cat,rnd), category:cat, amount:-amt, type:'Expense', account:'HDFC Current •• 2290', status:'Cleared', risk: (cat==='Office'||cat==='Payroll')?'High':'Low'});
+      }
+    });
+    txns.push({id:txId++, date:new Date(now.getFullYear(),now.getMonth(),3), desc:'Meridian Retail Co. — Payment received', category:'Revenue', amount:480000, type:'Income', account:'HDFC Current •• 2290', status:'Cleared', risk:'Low'});
+    txns.sort((a,b)=>b.date-a.date);
+
+    DATA = {months, revHist, expHist, catBase, catCurrent, employees, baseTotalPayroll, receivables, payables, cashHist, cashBalance, loans, receivablesTotal, payablesTotal, txns};
+  }
+}
+function sampleMerchant(cat, rnd){
+  const map = {Food:['Swiggy','Zomato','Local Kirana Store','Cafe Coffee Day'],Transport:['Uber','Ola Cabs','Metro Card Recharge','Petrol Pump'],
+    Education:['Udemy','Byju\'s','Library Fee','Coaching Center'],Shopping:['Amazon','Myntra','Zenith Electronics — UPI','Reliance Trends'],
+    Bills:['Airtel Postpaid','Electricity Board','Water Bill','Gas Cylinder'],Entertainment:['Netflix','BookMyShow','Spotify','PVR Cinemas'],Other:['ATM Withdrawal','Misc UPI Transfer','Courier Charges']};
+  const arr = map[cat]||['Misc Transaction']; return arr[Math.floor(rnd()*arr.length)];
+}
+function sampleVendor(cat, rnd){
+  const map = {Payroll:['Payroll Run — ADP'],Rent:['Kingsway Properties'],Utilities:['State Electricity Board','Municipal Water Corp'],
+    Suppliers:['Vishnu Textile Mills','Coastal Logistics','Bright Packaging Co.'],Marketing:['Meta Ads','Google Ads','Print Media Agency'],
+    Operations:['Warehouse Ops Pvt Ltd','Facility Maintenance'],'Loan EMI':['HDFC Term Loan EMI'],Office:['Prime Office Supplies','Office Rentals Co.','Pantry & Facilities'],Other:['Misc Vendor Payment']};
+  const arr = map[cat]||['Vendor Payment']; return arr[Math.floor(rnd()*arr.length)];
+}
+
+/* ================= ANALYTICS ENGINE ================= */
+function linregForecast(series, stepsAhead){
+  const n = series.length;
+  const xs = series.map((_,i)=>i);
+  const xbar = xs.reduce((a,b)=>a+b,0)/n, ybar = series.reduce((a,b)=>a+b,0)/n;
+  let num=0, den=0;
+  for(let i=0;i<n;i++){ num += (xs[i]-xbar)*(series[i]-ybar); den += (xs[i]-xbar)**2; }
+  const slope = den===0?0:num/den;
+  const intercept = ybar - slope*xbar;
+  const out=[];
+  for(let s=1;s<=stepsAhead;s++){ out.push(Math.round(intercept + slope*(n-1+s))); }
+  return {slope, forecast:out};
+}
+function momChange(hist){
+  const a = hist[hist.length-2], b = hist[hist.length-1];
+  return a===0?0: ((b-a)/a)*100;
+}
+function computeRisk(){
+  if(USER.accountType==='personal'){
+    const income = DATA.incomeHist[DATA.incomeHist.length-1];
+    const expense = DATA.expenseHist[DATA.expenseHist.length-1];
+    const savingsRate = clamp(pct(income-expense, income),0,100);
+    const overdueBills = DATA.bills.filter(b=>b.status==='Overdue'||b.status==='Late').length;
+    let score = 100 - savingsRate*0.7 - (overdueBills*8);
+    score = clamp(Math.round(score),4,96);
+    return {score, label: score<35?'LOW':score<60?'MODERATE':'HIGH'};
+  } else {
+    const cashFlowRisk = clamp(50 - (DATA.cashBalance/1500000)*20 + (momChange(DATA.expHist)>10?20:0),5,95);
+    const debtRisk = clamp((DATA.loans/(DATA.revHist[DATA.revHist.length-1]*12))*140,5,95);
+    const overdueAmt = DATA.receivables.filter(r=>r.status==='Overdue').reduce((a,r)=>a+r.amount,0);
+    const receivableRisk = clamp((overdueAmt/DATA.receivablesTotal)*140,5,95);
+    const expenseRisk = clamp(40 + momChange(DATA.expHist)*1.6,5,95);
+    const payrollGrowth = pct(DATA.catCurrent.Payroll-DATA.catBase.Payroll, DATA.catBase.Payroll);
+    const payrollRisk = clamp(20 + payrollGrowth*1.4,5,95);
+    const composite = Math.round(cashFlowRisk*0.28 + debtRisk*0.18 + receivableRisk*0.24 + expenseRisk*0.18 + payrollRisk*0.12);
+    return {score:composite, label: composite<35?'LOW':composite<60?'MODERATE':'HIGH',
+      breakdown:{cashFlowRisk:Math.round(cashFlowRisk), debtRisk:Math.round(debtRisk), receivableRisk:Math.round(receivableRisk), expenseRisk:Math.round(expenseRisk), payrollRisk:Math.round(payrollRisk)}};
+  }
+}
+function computeCashForecast(){
+  const {forecast, slope} = linregForecast(DATA.cashHist, 3);
+  const current = DATA.cashHist[DATA.cashHist.length-1];
+  const shortageMonth = forecast.findIndex(v=>v < current*0.35);
+  return {forecast, slope, shortageIn: shortageMonth>=0 ? (shortageMonth+1)*30 : null};
+}
+function computeInsights(){
+  const insights = [];
+  if(USER.accountType==='personal'){
+    const shopChange = pct(DATA.catSpend.Shopping-DATA.catBase.Shopping, DATA.catBase.Shopping);
+    if(shopChange>40) insights.push({sev:'critical', tag:'ANOMALY', title:'Unusual spending detected in Shopping',
+      why:'Spending in Shopping increased '+Math.round(shopChange)+'% compared with your normal monthly pattern, driven by a large electronics purchase.',
+      impact:'This category alone used up roughly '+Math.round(pct(DATA.catSpend.Shopping,DATA.incomeHist[DATA.incomeHist.length-1]))+'% of this month\'s income.',
+      action:'Review the Zenith Electronics purchases below — there also appear to be two near-identical charges the same day.'});
+    const dupCheck = findDuplicates(DATA.txns);
+    if(dupCheck.length) insights.push({sev:'high', tag:'DUPLICATE', title:'Possible duplicate transaction',
+      why:'Two transactions to the same merchant, same amount, on the same day were found.',
+      impact:'If both are genuine, you may have been charged '+fmtINR(Math.abs(dupCheck[0].amount))+' twice.',
+      action:'Check your bank statement and request a reversal if this is a duplicate charge.'});
+    const expChange = momChange(DATA.expenseHist);
+    if(expChange>15) insights.push({sev:'high', tag:'TREND', title:'Expenses increased vs last month',
+      why:'Overall expenses increased by '+Math.round(expChange)+'% compared with last month.',
+      impact:'At this pace, your monthly savings rate would fall noticeably if the trend continues.',
+      action:'Set a soft budget cap on Shopping and Entertainment for the next two weeks.'});
+    const overdue = DATA.bills.filter(b=>b.status==='Overdue'||b.status==='Late');
+    overdue.forEach(b=> insights.push({sev:'high', tag:'PAYMENT', title:b.name+' payment is '+b.status.toLowerCase(),
+      why:'This bill was due on '+fmtDate(b.due)+' and has not been marked as paid.',
+      impact:'Late payment may trigger fees or affect your credit history.',
+      action:'Pay '+fmtINR(b.amount)+' as soon as possible, or set up autopay to avoid this in future.'}));
+    const cf = computeCashForecast();
+    if(cf.shortageIn) insights.push({sev:'critical', tag:'FORECAST', title:'Balance may run low soon',
+      why:'Based on your recent spending trend, your projected balance trends downward over the next few months.',
+      impact:'Your buffer may fall below a comfortable safety level around '+cf.shortageIn+' days from now.',
+      action:'Consider pausing discretionary spending and moving a portion of this month\'s income to your Emergency Fund goal.'});
+    else insights.push({sev:'positive', tag:'FORECAST', title:'Cash position looks stable',
+      why:'Your projected balance over the next 3 months stays within a healthy range given current habits.',
+      impact:'No immediate cash-flow risk detected.', action:'Keep up the current savings rate.'});
+    const incChange = momChange(DATA.incomeHist);
+    if(incChange>3) insights.push({sev:'positive', tag:'INCOME', title:'Income trending up',
+      why:'Income increased by '+Math.round(incChange)+'% compared with last month.',
+      impact:'This creates room for additional savings.', action:'Consider allocating the extra amount toward your Laptop or Goa Trip goal.'});
+  } else {
+    const officeChange = pct(DATA.catCurrent.Office-DATA.catBase.Office, DATA.catBase.Office);
+    insights.push({sev:'critical', tag:'ANOMALY · HIGH PRIORITY', title:'Office expenses spiked '+Math.round(officeChange)+'%',
+      why:'Office-related expenses increased significantly compared with the normal monthly average of '+fmtINR(DATA.catBase.Office)+'.',
+      impact:'Higher operating expenses may reduce future cash reserves if the pattern continues.',
+      action:'Review high-value office expense line items and identify the cause of the increase.'});
+    const dupPay = DATA.payables.find(p=>p.dupOf);
+    if(dupPay) insights.push({sev:'high', tag:'DUPLICATE PAYMENT', title:'Duplicate vendor payment detected',
+      why:'Two nearly identical payables to "'+dupPay.supplier+'" for '+fmtINR(dupPay.amount)+' were scheduled on the same due date.',
+      impact:'Paying both would overpay the vendor by '+fmtINR(dupPay.amount)+'.',
+      action:'Hold payment '+dupPay.invoice+' pending confirmation with '+dupPay.supplier+'.'});
+    const overdueRec = DATA.receivables.filter(r=>r.status==='Overdue').sort((a,b)=>b.amount-a.amount)[0];
+    if(overdueRec) insights.push({sev:'high', tag:'RECEIVABLE', title:overdueRec.customer+' invoice is overdue',
+      why:'Invoice '+overdueRec.invoice+' for '+fmtINR(overdueRec.amount)+' was due on '+fmtDate(overdueRec.due)+'.',
+      impact:'This delays expected cash inflow and increases receivable risk.',
+      action:'Send a payment reminder and consider a follow-up call before extending further credit.'});
+    const payrollChange = pct(DATA.catCurrent.Payroll-DATA.catBase.Payroll, DATA.catBase.Payroll);
+    insights.push({sev:'medium', tag:'PAYROLL', title:'Payroll expenses increased '+Math.round(payrollChange)+'%',
+      why:'This month\'s payroll run increased primarily due to overtime and a one-off bonus payment.',
+      impact:'Payroll now represents a larger share of total operating expense.',
+      action:'Review overtime approvals in the affected department before the next cycle.'});
+    const cf = computeCashForecast();
+    if(cf.shortageIn) insights.push({sev:'critical', tag:'FORECAST', title:'Potential cash shortage predicted in '+cf.shortageIn+' days',
+      why:'Upcoming payroll, supplier payments and loan repayment are expected to outpace incoming receivables.',
+      impact:'Cash balance may fall to an uncomfortable level if all obligations are paid on schedule.',
+      action:'Prioritize collecting overdue receivables and consider staggering non-critical supplier payments.'});
+    const revChange = momChange(DATA.revHist);
+    if(revChange>3) insights.push({sev:'positive', tag:'REVENUE', title:'Revenue growing '+Math.round(revChange)+'%',
+      why:'Revenue increased compared with last month, continuing a positive multi-month trend.',
+      impact:'Supports reinvestment capacity if expense growth is kept in check.', action:'No action required — monitor for consistency next cycle.'});
+  }
+  return insights;
+}
+function findDuplicates(txns){
+  const out=[];
+  for(let i=0;i<txns.length;i++){
+    for(let j=i+1;j<txns.length;j++){
+      if(txns[i].amount===txns[j].amount && txns[i].desc===txns[j].desc && Math.abs(txns[i].date-txns[j].date) < 86400000){
+        out.push(txns[i]); break;
+      }
+    }
+  }
+  return out;
+}
+function sevRank(s){ return {critical:0,high:1,medium:2,positive:3}[s] ?? 4; }
+
+/* ================= SIDEBAR / ROUTER ================= */
+const VIEWS_PERSONAL = [
+  {group:'', items:[['overview','◆','Overview']]},
+  {group:'MONEY', items:[['transactions','≡','Transactions'],['expenses','▤','Expenses'],['payments','▦','Payments'],['receivables','↙','Receivables'],['savings','●','Savings']]},
+  {group:'INTELLIGENCE', items:[['predictions','⤳','Predictions'],['insights','⚑','AI Insights'],['assistant','✦','AI Assistant']]},
+  {group:'', items:[['reports','▧','Reports'],['settings','⚙','Settings']]},
+];
+const VIEWS_BUSINESS = [
+  {group:'', items:[['overview','◆','Overview']]},
+  {group:'MONEY', items:[['revenue','▲','Revenue'],['expenses','▤','Expenses'],['transactions','≡','Transactions'],['receivables','↙','Receivables'],['payables','↗','Payables'],['payroll','⛁','Payroll']]},
+  {group:'PLANNING', items:[['cashflow','〰','Cash Flow'],['loans','▣','Loans & Investments'],['predictions','⤳','Predictions'],['risk','⚠','Risk Center']]},
+  {group:'INTELLIGENCE', items:[['insights','⚑','AI Insights'],['assistant','✦','AI Assistant']]},
+  {group:'', items:[['reports','▧','Reports'],['settings','⚙','Settings']]},
+];
+function buildSidebar(){
+  const groups = USER.accountType==='business' ? VIEWS_BUSINESS : VIEWS_PERSONAL;
+  let html='';
+  groups.forEach(g=>{
+    if(g.group) html += '<div class="side-group-label">'+g.group+'</div>';
+    g.items.forEach(([id,icon,label])=>{
+      html += '<a class="side-link" data-view="'+id+'" onclick="jumpTo(\''+id+'\')"><span class="ic">'+icon+'</span>'+label+'</a>';
+    });
+  });
+  document.getElementById('sideNav').innerHTML = html;
+}
+const RENDERERS = {
+  overview: renderOverview, revenue: renderRevenue, expenses: renderExpenses, transactions: renderTransactions,
+  payments: renderPayments, receivables: renderReceivables, payables: renderPayables, savings: renderSavings,
+  payroll: renderPayroll, cashflow: renderCashflow, loans: renderLoans, predictions: renderPredictions,
+  risk: renderRisk, insights: renderInsights, assistant: renderAssistant, reports: renderReports, settings: renderSettings
+};
+function jumpTo(view){
+  currentView = view;
+  document.querySelectorAll('.side-link').forEach(l=> l.classList.toggle('active', l.dataset.view===view));
+  document.querySelectorAll('.view').forEach(v=> v.classList.remove('active'));
+  const target = document.getElementById('view-'+view);
+  target.classList.add('active');
+  document.getElementById('sidebar').classList.remove('open');
+  if(RENDERERS[view]) RENDERERS[view]();
+  window.scrollTo(0,0);
+}
+function mkChart(id, config){
+  if(typeof Chart === 'undefined') return;
+  if(charts[id]) charts[id].destroy();
+  const ctx = document.getElementById(id);
+  if(!ctx) return;
+  charts[id] = new Chart(ctx, config);
+}
+function deltaHtml(changePct){
+  const up = changePct>=0;
+  return '<div class="delta '+(Math.abs(changePct)<1?'flat':up?'up':'down')+'">'+(up?'▲':'▼')+' '+Math.abs(changePct).toFixed(1)+'% vs last month</div>';
+}
+
+/* ================= RENDER: OVERVIEW ================= */
+function renderOverview(){
+  const risk = computeRisk();
+  let html='';
+  if(USER.accountType==='personal'){
+    const income = DATA.incomeHist[DATA.incomeHist.length-1];
+    const expense = DATA.expenseHist[DATA.expenseHist.length-1];
+    const balance = income-expense;
+    const savings = DATA.goals.reduce((a,g)=>a+g.current,0);
+    html += '<div class="view-head"><div><h2>Good to see you, '+USER.name.split(' ')[0]+'</h2><p class="sub">Here\'s where your money stood this month.</p></div>'+
+      '<span class="risk-pill risk-'+risk.label.toLowerCase()+'"><span class="dot-ind"></span>Financial Risk '+risk.score+'/100 — '+risk.label+'</span></div>';
+    html += '<div class="grid grid-4">'+
+      kpiCard('Total Income', fmtINR(income), momChange(DATA.incomeHist))+
+      kpiCard('Total Expenses', fmtINR(expense), momChange(DATA.expenseHist), true)+
+      kpiCard('Current Balance', fmtINR(balance), null)+
+      kpiCard('Total Savings', fmtINR(savings), null)+
+      '</div>';
+    html += '<div class="section-title">Income vs Expenses</div><div class="grid grid-2">'+
+      '<div class="card"><div class="card-title">Monthly comparison</div><div class="card-sub">Last 12 months</div><div class="chart-box"><canvas id="chIncExp"></canvas></div></div>'+
+      '<div class="card"><div class="card-title">Expense breakdown</div><div class="card-sub">This month, by category</div><div class="chart-box"><canvas id="chBreakdown"></canvas></div></div>'+
+      '</div>';
+    html += '<div class="section-title">Top alerts <a class="btn btn-ghost btn-sm" onclick="jumpTo(\'insights\')">View all →</a></div>';
+    const top = computeInsights().sort((a,b)=>sevRank(a.sev)-sevRank(b.sev)).slice(0,2);
+    html += top.map(alertHtml).join('');
+    document.getElementById('view-overview').innerHTML = html;
+    mkChart('chIncExp', {type:'bar', data:{labels:DATA.months, datasets:[
+      {label:'Income', data:DATA.incomeHist, backgroundColor:'#1F5B4E', borderRadius:4},
+      {label:'Expenses', data:DATA.expenseHist, backgroundColor:'#C97A2E', borderRadius:4}]},
+      options: chartOpts()});
+    mkChart('chBreakdown', {type:'doughnut', data:{labels:Object.keys(DATA.catSpend), datasets:[{data:Object.values(DATA.catSpend),
+      backgroundColor:['#1F5B4E','#2E5C8A','#C97A2E','#A93A32','#8A6FB0','#5B6B72','#B79A3E']}]}, options:{plugins:{legend:{position:'bottom', labels:{boxWidth:10,font:{size:11}}}}}});
+  } else {
+    const rev = DATA.revHist[DATA.revHist.length-1], exp = DATA.expHist[DATA.expHist.length-1], profit = rev-exp;
+    html += '<div class="view-head"><div><h2>'+USER.company+'</h2><p class="sub">Business financial control center — '+USER.bizType+'.</p></div>'+
+      '<span class="risk-pill risk-'+risk.label.toLowerCase()+'"><span class="dot-ind"></span>Financial Risk '+risk.score+'/100 — '+risk.label+'</span></div>';
+    html += '<div class="grid grid-4">'+
+      kpiCard('Revenue', fmtINR(rev), momChange(DATA.revHist))+
+      kpiCard('Expenses', fmtINR(exp), momChange(DATA.expHist), true)+
+      kpiCard('Profit', fmtINR(profit), null)+
+      kpiCard('Cash Balance', fmtINR(DATA.cashBalance), null)+
+      '</div>';
+    html += '<div class="grid grid-4" style="margin-top:16px;">'+
+      kpiCard('Receivables', fmtINR(DATA.receivablesTotal), null)+
+      kpiCard('Payables', fmtINR(DATA.payablesTotal), null)+
+      kpiCard('Loans Outstanding', fmtINR(DATA.loans), null)+
+      kpiCard('Monthly Payroll', fmtINR(DATA.baseTotalPayroll), null)+
+      '</div>';
+    html += '<div class="section-title">Financial health: '+financialHealthScore()+'/100 — '+(financialHealthScore()>=70?'🟢 Healthy':financialHealthScore()>=45?'🟡 Watch':'🔴 At risk')+'</div>';
+    html += '<div class="grid grid-2">'+
+      '<div class="card"><div class="card-title">Revenue vs Expenses</div><div class="card-sub">Last 12 months</div><div class="chart-box"><canvas id="chRevExp"></canvas></div></div>'+
+      '<div class="card"><div class="card-title">Expense breakdown</div><div class="card-sub">This month, by category</div><div class="chart-box"><canvas id="chBreakdown"></canvas></div></div>'+
+      '</div>';
+    html += '<div class="section-title">Priority alerts <a class="btn btn-ghost btn-sm" onclick="jumpTo(\'insights\')">View all →</a></div>';
+    const top = computeInsights().sort((a,b)=>sevRank(a.sev)-sevRank(b.sev)).slice(0,3);
+    html += top.map(alertHtml).join('');
+    document.getElementById('view-overview').innerHTML = html;
+    mkChart('chRevExp', {type:'line', data:{labels:DATA.months, datasets:[
+      {label:'Revenue', data:DATA.revHist, borderColor:'#1F5B4E', backgroundColor:'rgba(31,91,78,.12)', fill:true, tension:.35},
+      {label:'Expenses', data:DATA.expHist, borderColor:'#A93A32', backgroundColor:'rgba(169,58,50,.08)', fill:true, tension:.35}]},
+      options: chartOpts()});
+    mkChart('chBreakdown', {type:'doughnut', data:{labels:Object.keys(DATA.catCurrent), datasets:[{data:Object.values(DATA.catCurrent),
+      backgroundColor:['#1F5B4E','#2E5C8A','#C97A2E','#A93A32','#8A6FB0','#5B6B72','#B79A3E','#4A8FA6','#9C6B12']}]}, options:{plugins:{legend:{position:'bottom', labels:{boxWidth:10,font:{size:10}}}}}});
+  }
+}
+function financialHealthScore(){
+  const risk = computeRisk();
+  return clamp(100-risk.score+ (risk.score<40?10:0), 5, 98);
+}
+function kpiCard(label, value, changePct, inverse){
+  let deltaBlock = '';
+  if(changePct!==null && changePct!==undefined){
+    const up = changePct>=0; const good = inverse ? !up : up;
+    deltaBlock = '<div class="delta '+(Math.abs(changePct)<1?'flat':good?'up':'down')+'">'+(up?'▲':'▼')+' '+Math.abs(changePct).toFixed(1)+'%</div>';
+  }
+  return '<div class="card kpi"><div class="lbl">'+label+'</div><div class="val">'+value+'</div>'+deltaBlock+'</div>';
+}
+function chartOpts(){
+  return {responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom', labels:{boxWidth:10,font:{size:11}}}},
+    scales:{y:{ticks:{callback:v=>'₹'+(v/1000).toFixed(0)+'k', font:{size:10}}, grid:{color:'#EEF1F0'}}, x:{ticks:{font:{size:10}}, grid:{display:false}}}};
+}
+function alertHtml(a){
+  return '<div class="alert"><div class="sev sev-'+a.sev+'"></div><div class="alert-body">'+
+    '<span class="alert-tag">'+a.tag+'</span><div class="alert-title">'+a.title+'</div>'+
+    '<div class="alert-detail"><div><b>Why</b>'+a.why+'</div><div><b>Impact</b>'+a.impact+'</div></div>'+
+    '<div class="alert-detail" style="grid-template-columns:1fr;"><div><b>Recommended action</b>'+a.action+'</div></div>'+
+    '</div></div>';
+}
+
+/* ================= RENDER: REVENUE (business) ================= */
+function renderRevenue(){
+  const {forecast} = linregForecast(DATA.revHist, 3);
+  const growth = pct(forecast[0]-DATA.revHist[DATA.revHist.length-1], DATA.revHist[DATA.revHist.length-1]);
+  let html = '<div class="view-head"><div><h2>Revenue</h2><p class="sub">Trend, growth and forward projection.</p></div></div>';
+  html += '<div class="grid grid-3">'+
+    kpiCard('This month', fmtINR(DATA.revHist[DATA.revHist.length-1]), momChange(DATA.revHist))+
+    kpiCard('Next month (projected)', fmtINR(forecast[0]), growth)+
+    kpiCard('Next quarter (projected)', fmtINR(forecast[0]+forecast[1]+forecast[2]), null)+
+    '</div>';
+  html += '<div class="card" style="margin-top:18px;"><div class="card-title">Revenue trend + forecast</div><div class="card-sub">Historical (solid) and AI-projected (dashed)</div><div class="chart-box"><canvas id="chRevFore"></canvas></div></div>';
+  html += '<div class="card" style="margin-top:18px;"><div class="card-title">AI read</div><p style="font-size:13.5px;color:var(--slate);line-height:1.6;">Revenue is projected to '+(growth>=0?'increase':'decrease')+' by '+Math.abs(growth).toFixed(1)+'% next month based on the recent 12-month trend line. This projection uses a simple linear regression over historical revenue and should be treated as directional, not exact.</p></div>';
+  document.getElementById('view-revenue').innerHTML = html;
+  mkChart('chRevFore', {type:'line', data:{labels:[...DATA.months,'+1mo','+2mo','+3mo'], datasets:[
+    {label:'Revenue', data:[...DATA.revHist,null,null,null], borderColor:'#1F5B4E', backgroundColor:'rgba(31,91,78,.1)', fill:true, tension:.3},
+    {label:'Forecast', data:[...Array(DATA.revHist.length-1).fill(null), DATA.revHist[DATA.revHist.length-1], ...forecast], borderColor:'#2E5C8A', borderDash:[6,4], fill:false, tension:.3}
+  ]}, options: chartOpts()});
+}
+
+/* ================= RENDER: EXPENSES ================= */
+function renderExpenses(){
+  const isP = USER.accountType==='personal';
+  const cur = isP ? DATA.catSpend : DATA.catCurrent;
+  const base = isP ? DATA.catBase : DATA.catBase;
+  let html = '<div class="view-head"><div><h2>Expenses</h2><p class="sub">Category breakdown vs your normal baseline.</p></div></div>';
+  html += '<div class="grid grid-2"><div class="card"><div class="card-title">This month by category</div><div class="chart-box"><canvas id="chExpCat"></canvas></div></div>';
+  html += '<div class="card"><div class="card-title">Trend</div><div class="card-sub">'+(isP?'Total monthly spend':'Total monthly expense')+'</div><div class="chart-box"><canvas id="chExpTrend"></canvas></div></div></div>';
+  html += '<div class="section-title">Category vs baseline</div><div class="card"><table><thead><tr><th>Category</th><th class="num">Baseline</th><th class="num">This month</th><th class="num">Change</th></tr></thead><tbody>';
+  Object.keys(cur).forEach(cat=>{
+    const change = pct(cur[cat]-base[cat], base[cat]);
+    html += '<tr><td>'+cat+'</td><td class="num">'+fmtINR(base[cat])+'</td><td class="num">'+fmtINR(cur[cat])+'</td><td class="num" style="color:'+(change>25?'var(--crimson)':change>10?'var(--amber)':'var(--slate)')+';font-weight:700;">'+(change>=0?'+':'')+change.toFixed(0)+'%</td></tr>';
+  });
+  html += '</tbody></table></div>';
+  document.getElementById('view-expenses').innerHTML = html;
+  mkChart('chExpCat', {type:'bar', data:{labels:Object.keys(cur), datasets:[{label:'Amount', data:Object.values(cur), backgroundColor:Object.keys(cur).map(c=> (pct(cur[c]-base[c],base[c])>30) ? '#A93A32':'#1F5B4E'), borderRadius:5}]}, options:{...chartOpts(), plugins:{legend:{display:false}}}});
+  mkChart('chExpTrend', {type:'line', data:{labels:DATA.months, datasets:[{label:'Expenses', data: isP?DATA.expenseHist:DATA.expHist, borderColor:'#C97A2E', backgroundColor:'rgba(201,122,46,.12)', fill:true, tension:.35}]}, options: chartOpts()});
+}
+
+/* ================= RENDER: TRANSACTIONS ================= */
+let txnFilter = {q:'', type:'All'};
+function renderTransactions(){
+  let html = '<div class="view-head"><div><h2>Transactions</h2><p class="sub">Every inflow and outflow, in one ledger.</p></div>'+
+    '<div style="display:flex;gap:10px;"><button class="btn btn-outline btn-sm" onclick="triggerUpload()">Upload CSV / Excel</button><button class="btn btn-primary btn-sm" onclick="openAddTxnModal()">+ Add transaction</button></div></div>';
+  html += '<div style="display:flex;gap:10px;margin-bottom:16px;align-items:center;">'+
+    '<input id="txnSearch" placeholder="Search description, merchant…" oninput="txnFilter.q=this.value; renderTxnTable();" style="flex:1;max-width:320px;padding:10px 14px;border:1px solid var(--line);border-radius:8px;font-size:13.5px;">'+
+    ['All','Income','Expense'].map(t=>'<button class="pill-btn '+(txnFilter.type===t?'active':'')+'" onclick="txnFilter.type=\''+t+'\'; renderTxnTable();">'+t+'</button>').join('')+
+    '</div>';
+  html += '<div class="card" style="padding:0;overflow-x:auto;"><table id="txnTable"><thead><tr><th>Date</th><th>Description</th><th>Category</th><th>Type</th><th class="num">Amount</th><th>Status</th><th>Risk</th><th></th></tr></thead><tbody id="txnBody"></tbody></table></div>';
+  document.getElementById('view-transactions').innerHTML = html;
+  renderTxnTable();
+}
+function renderTxnTable(){
+  let rows = DATA.txns.filter(t=> (txnFilter.type==='All'||t.type===txnFilter.type) && (t.desc.toLowerCase().includes(txnFilter.q.toLowerCase())||t.category.toLowerCase().includes(txnFilter.q.toLowerCase())));
+  document.getElementById('txnBody').innerHTML = rows.map(t=>
+    '<tr><td class="mono" style="color:var(--slate);">'+fmtDate(t.date)+'</td><td>'+t.desc+'</td><td>'+t.category+'</td><td>'+t.type+'</td>'+
+    '<td class="num" style="color:'+(t.amount<0?'var(--crimson)':'var(--ledger)')+';font-weight:600;">'+(t.amount<0?'-':'+')+fmtINR(Math.abs(t.amount))+'</td>'+
+    '<td><span class="status-tag status-'+t.status.toLowerCase()+'">'+t.status+'</span></td>'+
+    '<td><span class="risk-pill risk-'+t.risk.toLowerCase()+'">'+t.risk+'</span></td>'+
+    '<td><button class="btn-ghost btn-sm" onclick="deleteTxn('+t.id+')">Delete</button></td></tr>'
+  ).join('') || '<tr><td colspan="8"><div class="empty-state">No transactions match your filters.</div></td></tr>';
+}
+function deleteTxn(id){ DATA.txns = DATA.txns.filter(t=>t.id!==id); renderTxnTable(); showToast('Transaction removed.'); }
+function openAddTxnModal(){
+  openModal('<h3>Add transaction</h3>'+
+    '<div class="field"><label>Description</label><input id="ntDesc" placeholder="e.g. Office rent"></div>'+
+    '<div class="field-row"><div class="field"><label>Category</label><input id="ntCat" placeholder="e.g. Bills"></div><div class="field"><label>Amount (₹)</label><input id="ntAmt" type="number" placeholder="1500"></div></div>'+
+    '<div class="field"><label>Type</label><select id="ntType"><option>Expense</option><option>Income</option><option>Payment</option><option>Receivable</option><option>Transfer</option></select></div>'+
+    '<div style="display:flex;gap:10px;margin-top:22px;"><button class="btn btn-outline btn-block" onclick="closeModal()">Cancel</button><button class="btn btn-primary btn-block" onclick="submitAddTxn()">Add</button></div>');
+}
+function submitAddTxn(){
+  const desc = document.getElementById('ntDesc').value.trim()||'Untitled transaction';
+  const cat = document.getElementById('ntCat').value.trim()||'Other';
+  let amt = parseFloat(document.getElementById('ntAmt').value)||0;
+  const type = document.getElementById('ntType').value;
+  if(type==='Expense'||type==='Payment') amt = -Math.abs(amt); else amt = Math.abs(amt);
+  DATA.txns.unshift({id:Date.now(), date:new Date(), desc, category:cat, amount:amt, type, account:'Manual entry', status:'Cleared', risk:'Low'});
+  closeModal(); renderTxnTable(); showToast('Transaction added.');
+}
+function triggerUpload(){ showToast('Demo mode: file parsed and merged into your ledger (12 rows).'); }
+
+/* ================= RENDER: PAYMENTS (personal) ================= */
+function renderPayments(){
+  let html = '<div class="view-head"><div><h2>Payments</h2><p class="sub">Upcoming and past bills, tracked automatically.</p></div><button class="btn btn-primary btn-sm" onclick="openAddBillModal()">+ Add bill</button></div>';
+  html += '<div class="card" style="padding:0;overflow-x:auto;"><table><thead><tr><th>Bill</th><th class="num">Amount</th><th>Due date</th><th>Paid on</th><th>Status</th></tr></thead><tbody>';
+  DATA.bills.forEach(b=>{
+    html += '<tr><td>'+b.name+'</td><td class="num">'+fmtINR(b.amount)+'</td><td>'+fmtDate(b.due)+'</td><td>'+(b.paidOn?fmtDate(b.paidOn):'—')+'</td><td><span class="status-tag status-'+b.status.toLowerCase()+'">'+statusIcon(b.status)+' '+b.status+'</span></td></tr>';
+  });
+  html += '</tbody></table></div>';
+  document.getElementById('view-payments').innerHTML = html;
+}
+function statusIcon(s){ return {Paid:'🟢',Pending:'🟡',Processing:'🟡',Late:'🔴',Overdue:'🔴'}[s]||''; }
+function openAddBillModal(){
+  openModal('<h3>Add a bill</h3><div class="field"><label>Bill name</label><input id="nbName" placeholder="e.g. Gym membership"></div>'+
+  '<div class="field-row"><div class="field"><label>Amount (₹)</label><input id="nbAmt" type="number"></div><div class="field"><label>Due day of month</label><input id="nbDay" type="number" placeholder="15"></div></div>'+
+  '<div style="display:flex;gap:10px;margin-top:22px;"><button class="btn btn-outline btn-block" onclick="closeModal()">Cancel</button><button class="btn btn-primary btn-block" onclick="submitAddBill()">Add bill</button></div>');
+}
+function submitAddBill(){
+  const name = document.getElementById('nbName').value.trim()||'New bill';
+  const amount = parseFloat(document.getElementById('nbAmt').value)||0;
+  const day = parseInt(document.getElementById('nbDay').value)||15;
+  const now = new Date();
+  DATA.bills.push({name, amount, due:new Date(now.getFullYear(),now.getMonth(),day), paidOn:null, status:'Pending'});
+  closeModal(); renderPayments(); showToast('Bill added.');
+}
+
+/* ================= RENDER: RECEIVABLES ================= */
+function renderReceivables(){
+  const isP = USER.accountType==='personal';
+  const rows = isP ? [] : DATA.receivables;
+  let html = '<div class="view-head"><div><h2>Accounts Receivable</h2><p class="sub">'+(isP?'Money owed to you.':'Who owes you, and how much risk each invoice carries.')+'</p></div></div>';
+  if(isP){
+    html += '<div class="empty-state">No outstanding receivables — you have no pending money owed to you this month.</div>';
+    document.getElementById('view-receivables').innerHTML = html; return;
+  }
+  const overdue = rows.filter(r=>r.status==='Overdue');
+  html += '<div class="grid grid-3">'+kpiCard('Total receivable', fmtINR(DATA.receivablesTotal), null)+kpiCard('Overdue', fmtINR(overdue.reduce((a,r)=>a+r.amount,0)), null)+kpiCard('Invoices at risk', overdue.length+rows.filter(r=>r.risk==='High').length, null)+'</div>';
+  html += '<div class="card" style="margin-top:18px;padding:0;overflow-x:auto;"><table><thead><tr><th>Customer</th><th>Invoice</th><th class="num">Amount</th><th>Due date</th><th class="num">Days overdue</th><th>Status</th><th>Risk</th></tr></thead><tbody>';
+  rows.forEach(r=>{
+    const overdueDays = r.status==='Overdue' ? daysBetween(r.due,new Date()) : 0;
+    html += '<tr><td>'+r.customer+'</td><td class="mono">'+r.invoice+'</td><td class="num">'+fmtINR(r.amount)+'</td><td>'+fmtDate(r.due)+'</td><td class="num">'+(overdueDays>0?overdueDays:'—')+'</td><td><span class="status-tag status-'+r.status.toLowerCase().replace(' ','-')+'">'+r.status+'</span></td><td><span class="risk-pill risk-'+r.risk.toLowerCase()+'">'+r.risk+'</span></td></tr>';
+  });
+  html += '</tbody></table></div>';
+  html += '<div class="section-title">AI read</div><div class="card"><p style="font-size:13.5px;color:var(--slate);line-height:1.6;">'+
+    (overdue.length ? ('High-value overdue accounts to prioritize: '+overdue.map(o=>o.customer+' ('+fmtINR(o.amount)+')').join(', ')+'. Customers with a history of late payment carry elevated collection risk and should be followed up before extending further credit.') : 'No overdue receivables currently — collections are on track.')+
+    '</p></div>';
+  document.getElementById('view-receivables').innerHTML = html;
+}
+
+/* ================= RENDER: PAYABLES (business) ================= */
+function renderPayables(){
+  const dueSoon = DATA.payables.filter(p=>!p.dupOf && daysBetween(new Date(),p.due)<=7).reduce((a,p)=>a+p.amount,0);
+  let html = '<div class="view-head"><div><h2>Accounts Payable</h2><p class="sub">Upcoming obligations to suppliers.</p></div></div>';
+  html += '<div class="card" style="margin-bottom:18px;background:var(--blue-light);border-color:#C7D8E8;"><p style="font-size:13.5px;color:var(--blue);font-weight:600;">'+fmtINR(dueSoon)+' in supplier payments are due within the next 7 days.</p></div>';
+  html += '<div class="card" style="padding:0;overflow-x:auto;"><table><thead><tr><th>Supplier</th><th>Invoice</th><th class="num">Amount</th><th>Due date</th><th>Status</th><th>Priority</th></tr></thead><tbody>';
+  DATA.payables.forEach(p=>{
+    html += '<tr'+(p.dupOf?' style="background:var(--crimson-light);"':'')+'><td>'+p.supplier+(p.dupOf?' <span class="status-tag status-overdue">possible duplicate</span>':'')+'</td><td class="mono">'+p.invoice+'</td><td class="num">'+fmtINR(p.amount)+'</td><td>'+fmtDate(p.due)+'</td><td><span class="status-tag status-'+p.status.toLowerCase()+'">'+p.status+'</span></td><td>'+p.priority+'</td></tr>';
+  });
+  html += '</tbody></table></div>';
+  document.getElementById('view-payables').innerHTML = html;
+}
+
+/* ================= RENDER: SAVINGS (personal) ================= */
+function renderSavings(){
+  let html = '<div class="view-head"><div><h2>Savings & Goals</h2><p class="sub">AI-paced targets based on your spending pattern.</p></div><button class="btn btn-primary btn-sm" onclick="openAddGoalModal()">+ New goal</button></div>';
+  html += '<div class="grid grid-3">';
+  DATA.goals.forEach(g=>{
+    const prog = clamp(pct(g.current,g.target),0,100);
+    const remaining = g.target-g.current;
+    const monthly = Math.max(1000, Math.round(remaining/5));
+    html += '<div class="card goal-card"><div style="font-size:22px;">'+g.icon+'</div><div class="card-title" style="margin-top:8px;">'+g.name+'</div>'+
+      '<div class="goal-bar"><div style="width:'+prog+'%;"></div></div><div class="goal-row"><span>'+fmtINR(g.current)+'</span><span>'+fmtINR(g.target)+'</span></div>'+
+      '<p style="font-size:12px;color:var(--slate);margin-top:12px;line-height:1.5;">To reach this goal in about 5 months, save approximately <b class="mono">'+fmtINR(monthly)+'</b> per month.</p></div>';
+  });
+  html += '</div>';
+  document.getElementById('view-savings').innerHTML = html;
+}
+function openAddGoalModal(){
+  openModal('<h3>New savings goal</h3><div class="field"><label>Goal name</label><input id="ngName" placeholder="e.g. New Phone"></div>'+
+  '<div class="field-row"><div class="field"><label>Target amount (₹)</label><input id="ngTarget" type="number"></div><div class="field"><label>Current saved (₹)</label><input id="ngCurrent" type="number" value="0"></div></div>'+
+  '<div style="display:flex;gap:10px;margin-top:22px;"><button class="btn btn-outline btn-block" onclick="closeModal()">Cancel</button><button class="btn btn-primary btn-block" onclick="submitAddGoal()">Create goal</button></div>');
+}
+function submitAddGoal(){
+  const name = document.getElementById('ngName').value.trim()||'New goal';
+  const target = parseFloat(document.getElementById('ngTarget').value)||10000;
+  const current = parseFloat(document.getElementById('ngCurrent').value)||0;
+  DATA.goals.push({name, icon:'🎯', target, current});
+  closeModal(); renderSavings(); showToast('Goal created.');
+}
+
+/* ================= RENDER: PAYROLL (business) ================= */
+function renderPayroll(){
+  const total = DATA.employees.reduce((a,e)=>a+e.net,0);
+  const paid = DATA.employees.filter(e=>e.status==='Paid').reduce((a,e)=>a+e.net,0);
+  const pending = total-paid;
+  const payrollChange = pct(DATA.catCurrent.Payroll-DATA.catBase.Payroll, DATA.catBase.Payroll);
+  let html = '<div class="view-head"><div><h2>Employee Payroll</h2><p class="sub">'+USER.headcount+' employees on payroll (sample shown below).</p></div><button class="btn btn-primary btn-sm" onclick="openAddEmpModal()">+ Add employee</button></div>';
+  html += '<div class="grid grid-4">'+kpiCard('Total employees', USER.headcount, null)+kpiCard('Total monthly payroll', fmtINR(DATA.baseTotalPayroll), payrollChange, true)+kpiCard('Salary paid', fmtINR(paid), null)+kpiCard('Pending salary', fmtINR(pending), null)+'</div>';
+  if(payrollChange>10) html += '<div class="alert" style="margin-top:18px;"><div class="sev sev-medium"></div><div class="alert-body"><span class="alert-tag">AI PAYROLL ANALYSIS</span><div class="alert-title">Payroll expenses increased '+Math.round(payrollChange)+'% this month</div><div class="alert-detail" style="grid-template-columns:1fr;"><div><b>Reason</b>Primarily driven by overtime hours in Operations and a performance bonus in Engineering.</div></div></div></div>';
+  html += '<div class="card" style="margin-top:18px;padding:0;overflow-x:auto;"><table><thead><tr><th>ID</th><th>Name</th><th>Dept</th><th class="num">Basic</th><th class="num">Allow.</th><th class="num">Bonus</th><th class="num">OT</th><th class="num">Deduct.</th><th class="num">Gross</th><th class="num">Net</th><th>Status</th></tr></thead><tbody>';
+  DATA.employees.forEach(e=>{
+    html += '<tr><td class="mono">'+e.id+'</td><td>'+e.name+'</td><td>'+e.dept+'</td><td class="num">'+fmtINR(e.basic)+'</td><td class="num">'+fmtINR(e.allow)+'</td><td class="num">'+fmtINR(e.bonus)+'</td><td class="num">'+fmtINR(e.ot)+'</td><td class="num">-'+fmtINR(e.ded)+'</td><td class="num">'+fmtINR(e.gross)+'</td><td class="num" style="font-weight:700;">'+fmtINR(e.net)+'</td><td><span class="status-tag status-'+e.status.toLowerCase()+'">'+e.status+'</span></td></tr>';
+  });
+  html += '</tbody></table></div>';
+  document.getElementById('view-payroll').innerHTML = html;
+}
+function openAddEmpModal(){
+  openModal('<h3>Add employee</h3><div class="field"><label>Name</label><input id="neName" placeholder="e.g. S. Kapoor"></div>'+
+  '<div class="field-row"><div class="field"><label>Department</label><input id="neDept" placeholder="e.g. Sales"></div><div class="field"><label>Basic salary (₹)</label><input id="neBasic" type="number" placeholder="45000"></div></div>'+
+  '<div style="display:flex;gap:10px;margin-top:22px;"><button class="btn btn-outline btn-block" onclick="closeModal()">Cancel</button><button class="btn btn-primary btn-block" onclick="submitAddEmp()">Add employee</button></div>');
+}
+function submitAddEmp(){
+  const name = document.getElementById('neName').value.trim()||'New Employee';
+  const dept = document.getElementById('neDept').value.trim()||'Operations';
+  const basic = parseFloat(document.getElementById('neBasic').value)||35000;
+  const allow = Math.round(basic*0.22), bonus=0, ot=0, ded=Math.round((basic+allow)*0.09);
+  const gross = basic+allow+bonus+ot, net = gross-ded;
+  DATA.employees.push({id:'EMP'+(100+DATA.employees.length+1), name, dept, basic,allow,bonus,ot,ded,gross,net, status:'Processing', payDate:new Date()});
+  closeModal(); renderPayroll(); showToast('Employee added to payroll.');
+}
+
+/* ================= RENDER: CASH FLOW (business) ================= */
+function renderCashflow(){
+  const cf = computeCashForecast();
+  const inflow = Math.round(DATA.revHist[DATA.revHist.length-1]*0.9);
+  const outflow = Math.round(DATA.expHist[DATA.expHist.length-1]*1.02);
+  let html = '<div class="view-head"><div><h2>AI Cash Flow Forecast</h2><p class="sub">Projected using a trend model over 12 months of history.</p></div></div>';
+  html += '<div class="grid grid-4">'+kpiCard('Current cash', fmtINR(DATA.cashBalance), null)+kpiCard('Expected inflow (30d)', fmtINR(inflow), null)+kpiCard('Expected outflow (30d)', fmtINR(outflow), null)+kpiCard('Predicted cash (30d)', fmtINR(DATA.cashBalance+inflow-outflow), null)+'</div>';
+  html += '<div class="card" style="margin-top:18px;"><div class="card-title">Historical + predicted cash flow</div><div class="chart-box"><canvas id="chCashFore"></canvas></div></div>';
+  if(cf.shortageIn){
+    html += '<div class="alert" style="margin-top:18px;"><div class="sev sev-critical"></div><div class="alert-body"><span class="alert-tag">FORECAST</span><div class="alert-title">Potential cash shortage predicted in '+cf.shortageIn+' days</div>'+
+      '<div class="alert-detail" style="grid-template-columns:1fr;"><div><b>Reasons</b>Upcoming payroll, supplier payments, loan repayment, and delayed customer payments are the main drivers.</div></div>'+
+      '<div class="alert-actions"><button class="btn btn-outline btn-sm" onclick="jumpTo(\'receivables\')">Review receivables</button><button class="btn btn-outline btn-sm" onclick="jumpTo(\'payables\')">Review payables</button></div></div></div>';
+  }
+  document.getElementById('view-cashflow').innerHTML = html;
+  mkChart('chCashFore', {type:'line', data:{labels:[...DATA.months,'+1mo','+2mo','+3mo'], datasets:[
+    {label:'Historical cash', data:[...DATA.cashHist,null,null,null], borderColor:'#2E5C8A', backgroundColor:'rgba(46,92,138,.1)', fill:true, tension:.3},
+    {label:'Predicted cash', data:[...Array(DATA.cashHist.length-1).fill(null), DATA.cashHist[DATA.cashHist.length-1], ...cf.forecast], borderColor:'#A93A32', borderDash:[6,4], fill:false, tension:.3}
+  ]}, options: chartOpts()});
+}
+
+/* ================= RENDER: LOANS & INVESTMENTS (business) ================= */
+function renderLoans(){
+  let html = '<div class="view-head"><div><h2>Loans & Investments</h2><p class="sub">Debt obligations and capital deployed.</p></div></div>';
+  html += '<div class="grid grid-3">'+kpiCard('Outstanding loans', fmtINR(DATA.loans), null)+kpiCard('Monthly EMI', fmtINR(DATA.catBase['Loan EMI']), null)+kpiCard('Debt-to-revenue', (DATA.loans/(DATA.revHist[DATA.revHist.length-1]*12)*100).toFixed(1)+'%', null)+'</div>';
+  html += '<div class="section-title">Active facilities</div><div class="card" style="padding:0;overflow-x:auto;"><table><thead><tr><th>Facility</th><th>Lender</th><th class="num">Principal</th><th class="num">Outstanding</th><th class="num">EMI</th><th>Status</th></tr></thead><tbody>'+
+    '<tr><td>Term Loan — Expansion</td><td>HDFC Bank</td><td class="num">'+fmtINR(2500000)+'</td><td class="num">'+fmtINR(DATA.loans)+'</td><td class="num">'+fmtINR(DATA.catBase['Loan EMI'])+'</td><td><span class="status-tag status-paid">Current</span></td></tr>'+
+    '</tbody></table></div>';
+  html += '<div class="section-title">Investments</div><div class="card" style="padding:0;overflow-x:auto;"><table><thead><tr><th>Instrument</th><th class="num">Amount</th><th>Since</th><th class="num">Est. return</th></tr></thead><tbody>'+
+    '<tr><td>Fixed Deposit — Working capital buffer</td><td class="num">'+fmtINR(1200000)+'</td><td>Apr 2025</td><td class="num">7.1%</td></tr>'+
+    '<tr><td>New machinery (capex)</td><td class="num">'+fmtINR(3400000)+'</td><td>Jan 2026</td><td class="num">—</td></tr>'+
+    '</tbody></table></div>';
+  document.getElementById('view-loans').innerHTML = html;
+}
+
+/* ================= RENDER: PREDICTIONS ================= */
+function renderPredictions(){
+  const isP = USER.accountType==='personal';
+  const cf = computeCashForecast();
+  let html = '<div class="view-head"><div><h2>Predictions</h2><p class="sub">Where your finances are headed, based on recent trends.</p></div></div>';
+  html += '<div class="card"><div class="card-title">'+(isP?'Projected balance':'Projected cash position')+'</div><div class="chart-box"><canvas id="chPredMain"></canvas></div></div>';
+  const series = isP ? DATA.cashHist : DATA.cashHist;
+  if(cf.shortageIn){
+    html += '<div class="alert" style="margin-top:18px;"><div class="sev sev-critical"></div><div class="alert-body"><span class="alert-tag">PREDICTION</span>'+
+      '<div class="alert-title">'+(isP?'Your balance may fall below a comfortable level next month.':'Balance may fall short of upcoming obligations.')+'</div>'+
+      '<div class="alert-detail" style="grid-template-columns:1fr;"><div><b>Based on</b>Upcoming expenses and expected income trends over the last 12 months.</div></div></div></div>';
+  } else {
+    html += '<div class="alert" style="margin-top:18px;"><div class="sev sev-positive"></div><div class="alert-body"><span class="alert-tag">PREDICTION</span><div class="alert-title">Your projected trend looks stable</div></div></div>';
+  }
+  html += '<div class="grid grid-2" style="margin-top:18px;">'+
+    '<div class="card"><div class="card-title">'+(isP?'Expected expenses next month':'Expense forecast by category')+'</div><div class="chart-box small"><canvas id="chPredExp"></canvas></div></div>'+
+    '<div class="card"><div class="card-title">'+(isP?'Income trend':'Revenue trend')+'</div><div class="chart-box small"><canvas id="chPredInc"></canvas></div></div>'+
+    '</div>';
+  document.getElementById('view-predictions').innerHTML = html;
+  mkChart('chPredMain', {type:'line', data:{labels:[...DATA.months,'+1mo','+2mo','+3mo'], datasets:[
+    {label:'Historical', data:[...series,null,null,null], borderColor:'#1F5B4E', backgroundColor:'rgba(31,91,78,.1)', fill:true, tension:.3},
+    {label:'Forecast', data:[...Array(series.length-1).fill(null), series[series.length-1], ...cf.forecast], borderColor:'#A93A32', borderDash:[6,4], fill:false, tension:.3}
+  ]}, options: chartOpts()});
+  const expHist = isP?DATA.expenseHist:DATA.expHist, incHist = isP?DATA.incomeHist:DATA.revHist;
+  const expFore = linregForecast(expHist,3).forecast, incFore = linregForecast(incHist,3).forecast;
+  mkChart('chPredExp', {type:'bar', data:{labels:['+1mo','+2mo','+3mo'], datasets:[{label:'Projected', data:expFore, backgroundColor:'#C97A2E', borderRadius:5}]}, options:{...chartOpts(), plugins:{legend:{display:false}}}});
+  mkChart('chPredInc', {type:'bar', data:{labels:['+1mo','+2mo','+3mo'], datasets:[{label:'Projected', data:incFore, backgroundColor:'#1F5B4E', borderRadius:5}]}, options:{...chartOpts(), plugins:{legend:{display:false}}}});
+}
+
+/* ================= RENDER: RISK CENTER (business) ================= */
+function renderRisk(){
+  const risk = computeRisk();
+  let html = '<div class="view-head"><div><h2>AI Financial Risk Engine</h2><p class="sub">Transparent scoring across five underlying indicators.</p></div>'+
+    '<span class="risk-pill risk-'+risk.label.toLowerCase()+'" style="font-size:14px;padding:8px 16px;"><span class="dot-ind"></span>Financial Risk Score: '+risk.score+'/100 — '+risk.label+'</span></div>';
+  if(USER.accountType==='personal'){
+    html += '<div class="card"><p style="font-size:13.5px;color:var(--slate);line-height:1.6;">Personal risk is calculated from your savings rate and any overdue or late bills. A higher score means more of your income is being consumed by expenses, or bills are slipping past their due dates.</p></div>';
+    document.getElementById('view-risk').innerHTML = html; return;
+  }
+  const b = risk.breakdown;
+  const rows = [['Cash-flow Risk', b.cashFlowRisk],['Debt Risk', b.debtRisk],['Receivable Risk', b.receivableRisk],['Expense Risk', b.expenseRisk],['Payroll Risk', b.payrollRisk]];
+  html += '<div class="card"><div class="card-title">Risk breakdown</div>';
+  rows.forEach(([label,val])=>{
+    const color = val<35?'var(--ledger)':val<60?'var(--amber)':'var(--crimson)';
+    html += '<div class="risk-breakdown-row"><div class="rb-label">'+label+'</div><div class="rb-bar"><div style="width:'+val+'%;background:'+color+';"></div></div><div class="mono" style="width:40px;text-align:right;font-weight:700;">'+val+'</div></div>';
+  });
+  html += '</div>';
+  html += '<div class="section-title">What\'s driving the score</div>';
+  const insights = computeInsights().filter(i=>i.sev==='critical'||i.sev==='high');
+  html += insights.map(alertHtml).join('') || '<div class="empty-state">No high-severity drivers currently.</div>';
+  document.getElementById('view-risk').innerHTML = html;
+}
+
+/* ================= RENDER: AI INSIGHTS ================= */
+function renderInsights(){
+  const insights = computeInsights().sort((a,b)=>sevRank(a.sev)-sevRank(b.sev));
+  let html = '<div class="view-head"><div><h2>AI Financial Insights</h2><p class="sub">Prioritized alerts, generated from your live data.</p></div></div>';
+  html += insights.map(alertHtml).join('') || '<div class="empty-state">No insights yet — check back after more activity.</div>';
+  document.getElementById('view-insights').innerHTML = html;
+}
+
+/* ================= RENDER: AI ASSISTANT (chat) ================= */
+function renderAssistant(){
+  const isP = USER.accountType==='personal';
+  const suggestions = isP ? [
+    'Why did my expenses increase?','How much can I save this month?','Can I afford a laptop for ₹80,000?','What is my biggest expense?','When might I face a cash shortage?','How can I improve my savings?'
+  ] : [
+    'Why did our expenses increase?','Which customers are likely to pay late?','Can we afford equipment worth ₹10 lakh?','What will our cash balance look like next month?','Why is our profit decreasing?','Which expenses should management review?','How much will payroll cost next month?','What financial risks need immediate attention?'
+  ];
+  let html = '<div class="view-head"><div><h2>AI Finance Copilot</h2><p class="sub">Ask anything about your finances — answers are grounded in your own data.</p></div></div>';
+  html += '<div class="chat-wrap"><div class="chat-log" id="chatLog"></div>'+
+    '<div class="chat-suggest">'+suggestions.map(s=>'<button class="chip" onclick="askAI(\''+s.replace(/'/g,"\'")+'\')">'+s+'</button>').join('')+'</div>'+
+    '<div class="chat-input"><input id="chatInputBox" placeholder="Ask your finance copilot…" onkeydown="if(event.key===\'Enter\') askAI()"><button onclick="askAI()">↑</button></div></div>';
+  document.getElementById('view-assistant').innerHTML = html;
+  if(!document.getElementById('chatLog').dataset.seeded){
+    appendChatMsg('ai', "Hi "+USER.name.split(' ')[0]+" — I've reviewed your latest data. Ask me why something happened, what to expect next month, or whether you can afford something.");
+    document.getElementById('chatLog').dataset.seeded='1';
+  }
+}
+function appendChatMsg(who, html){
+  const log = document.getElementById('chatLog');
+  const div = document.createElement('div');
+  div.className='msg '+who;
+  div.innerHTML = html;
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+}
+function askAI(preset){
+  const box = document.getElementById('chatInputBox');
+  const q = preset || box.value.trim();
+  if(!q) return;
+  appendChatMsg('user', q);
+  if(box) box.value='';
+  setTimeout(()=>{
+    const r = generateAIResponse(q);
+    appendChatMsg('ai', r.answer + (r.reason||r.impact||r.action ? '<div class="ai-block">'+
+      (r.reason?'<b>Reason:</b> '+r.reason+'<br>':'')+(r.impact?'<b>Impact:</b> '+r.impact+'<br>':'')+(r.action?'<b>Recommended action:</b> '+r.action:'')+'</div>' : ''));
+  }, 500);
+}
+function generateAIResponse(q){
+  const isP = USER.accountType==='personal';
+  const qq = q.toLowerCase();
+  const affordMatch = qq.match(/afford[^\d₹]*₹?\s?([\d,]+(?:\s?(lakh|lac|l|k))?)/i);
+  if(affordMatch){
+    let raw = affordMatch[1].replace(/,/g,'');
+    let amt = parseFloat(raw);
+    if(/lakh|lac|l/i.test(affordMatch[2]||'')) amt*=100000;
+    if(/k/i.test(affordMatch[2]||'')) amt*=1000;
+    if(isP){
+      const balance = DATA.incomeHist[DATA.incomeHist.length-1]-DATA.expenseHist[DATA.expenseHist.length-1];
+      const savings = DATA.goals.reduce((a,g)=>a+g.current,0);
+      const canAfford = amt <= savings + balance*2;
+      return {answer: canAfford? 'Yes, this looks affordable without derailing your goals.' : 'This would put meaningful strain on your finances right now.',
+        reason: 'Your current balance is '+fmtINR(balance)+' per month and your combined savings across goals are '+fmtINR(savings)+'.',
+        impact: canAfford ? 'You could cover this from savings while keeping roughly '+fmtINR(Math.max(0,savings-amt))+' in reserve.' : 'Paying for this now would use up most or all of your available savings.',
+        action: canAfford ? 'Consider paying from savings rather than credit to avoid interest.' : 'Consider saving toward this over the next few months, or look for a lower-cost option.'};
+    } else {
+      const affordable = amt <= DATA.cashBalance*0.55;
+      return {answer: affordable? 'Yes, this purchase appears affordable given current cash reserves.' : 'This purchase would put meaningful pressure on cash reserves.',
+        reason: 'Current cash balance is '+fmtINR(DATA.cashBalance)+', with '+fmtINR(DATA.receivablesTotal)+' in pending receivables and '+fmtINR(DATA.payablesTotal)+' in near-term payables.',
+        impact: affordable ? 'Cash would remain above a safe operating buffer after the purchase.' : 'Cash could dip close to, or below, a safe operating buffer, especially if receivables are collected late.',
+        action: affordable ? 'Proceed, but time the purchase after collecting the overdue receivable from Sunrise Apparel Ltd.' : 'Consider financing part of the purchase or waiting until overdue receivables are collected.'};
+    }
+  }
+  if(/why.*(expense|cost).*(increase|up|higher)|expenses.*increase/i.test(qq)){
+    if(isP){
+      const changes = Object.keys(DATA.catSpend).map(c=>({c, change: pct(DATA.catSpend[c]-DATA.catBase[c], DATA.catBase[c])})).sort((a,b)=>b.change-a.change);
+      const top = changes[0];
+      return {answer:'Your expenses increased mainly because of '+top.c+'.', reason:top.c+' spending rose '+Math.round(top.change)+'% above your usual pattern this month.',
+        impact:'This category alone added roughly '+fmtINR(DATA.catSpend[top.c]-DATA.catBase[top.c])+' to your monthly spend.', action:'Review recent '+top.c+' transactions for one-off purchases you can avoid repeating.'};
+    } else {
+      const changes = Object.keys(DATA.catCurrent).map(c=>({c, change: pct(DATA.catCurrent[c]-DATA.catBase[c], DATA.catBase[c])})).sort((a,b)=>b.change-a.change);
+      const top = changes[0], second = changes[1];
+      return {answer:'Expenses increased primarily due to '+top.c+' and '+second.c+'.', reason:top.c+' rose '+Math.round(top.change)+'% and '+second.c+' rose '+Math.round(second.change)+'% versus the normal monthly average.',
+        impact:'Combined, these two categories account for the majority of this month\'s expense growth.', action:'Have department heads review high-value line items in '+top.c+' before next month\'s cycle.'};
+    }
+  }
+  if(/biggest expense/i.test(qq)){
+    const cur = isP?DATA.catSpend:DATA.catCurrent;
+    const top = Object.entries(cur).sort((a,b)=>b[1]-a[1])[0];
+    return {answer:'Your biggest expense category is '+top[0]+' at '+fmtINR(top[1])+' this month.'};
+  }
+  if(/how much.*save|save.*this month/i.test(qq) && isP){
+    const income = DATA.incomeHist[DATA.incomeHist.length-1], expense=DATA.expenseHist[DATA.expenseHist.length-1];
+    return {answer:'Based on your current pace, you could save around '+fmtINR(income-expense)+' this month.', reason:'This is the gap between projected income ('+fmtINR(income)+') and projected expenses ('+fmtINR(expense)+').', action:'Move this amount to your Emergency Fund goal as soon as your salary lands.'};
+  }
+  if(/improve.*saving/i.test(qq) && isP){
+    const changes = Object.keys(DATA.catSpend).map(c=>({c, change: pct(DATA.catSpend[c]-DATA.catBase[c], DATA.catBase[c])})).sort((a,b)=>b.change-a.change);
+    return {answer:'The fastest lever right now is trimming '+changes[0].c+', which is running well above your baseline.', reason:changes[0].c+' is '+Math.round(changes[0].change)+'% above your usual level.', action:'Set a monthly cap for '+changes[0].c+' and review it weekly.'};
+  }
+  if(/cash shortage|run.*low|balance.*fall/i.test(qq)){
+    const cf = computeCashForecast();
+    return cf.shortageIn ? {answer:'A shortage could occur in about '+cf.shortageIn+' days if current trends continue.', reason:'The projection is based on a trend line fitted to your last 12 months of cash position.', action: isP?'Pull back on discretionary spending this month.':'Prioritize collecting overdue receivables and stagger non-critical payables.'}
+      : {answer:'No shortage is currently projected in the near term — your trend looks stable.'};
+  }
+  if(/customers.*late|pay late|likely to pay late/i.test(qq) && !isP){
+    const risky = DATA.receivables.filter(r=>r.risk==='High'||r.status==='Overdue');
+    return {answer: risky.length ? risky.map(r=>r.customer).join(', ')+' show the highest risk of late payment.' : 'No customers currently show elevated late-payment risk.',
+      reason:'This is based on current overdue status and the risk rating on each open invoice.', action:'Prioritize follow-up calls with these accounts before extending further credit.'};
+  }
+  if(/profit.*decreas|profit.*down|why.*profit/i.test(qq) && !isP){
+    const revChange = momChange(DATA.revHist), expChange = momChange(DATA.expHist);
+    return {answer: expChange>revChange ? 'Profit pressure is coming from expenses growing faster than revenue.' : 'Profit looks stable to improving this month.',
+      reason:'Revenue changed '+revChange.toFixed(1)+'% while expenses changed '+expChange.toFixed(1)+'% versus last month.', action:'Focus cost review on the categories with the sharpest month-over-month increase.'};
+  }
+  if(/payroll.*cost|payroll.*next month/i.test(qq) && !isP){
+    const {forecast} = linregForecast([DATA.catBase.Payroll, DATA.catCurrent.Payroll], 1);
+    return {answer:'Payroll is projected to be roughly '+fmtINR(DATA.catCurrent.Payroll)+' next cycle if current overtime and bonus patterns continue.', reason:'This reflects the '+Math.round(pct(DATA.catCurrent.Payroll-DATA.catBase.Payroll,DATA.catBase.Payroll))+'% increase already seen this month.', action:'Cap discretionary overtime approvals if payroll needs to come back in line with the baseline.'};
+  }
+  if(/risk.*immediate|needs? immediate attention|financial risk/i.test(qq)){
+    const risk = computeRisk();
+    const top = computeInsights().filter(i=>i.sev==='critical')[0];
+    return {answer:'Overall risk is '+risk.score+'/100 ('+risk.label+').'+(top?' The most urgent item is: '+top.title+'.':''), reason: top?top.why:'No single critical driver stands out right now.', action: top?top.action:'Continue monitoring — nothing needs immediate attention.'};
+  }
+  if(/expenses.*review|should.*review/i.test(qq) && !isP){
+    const changes = Object.keys(DATA.catCurrent).map(c=>({c, change: pct(DATA.catCurrent[c]-DATA.catBase[c], DATA.catBase[c])})).filter(x=>x.change>15).sort((a,b)=>b.change-a.change);
+    return {answer: changes.length? 'Management should review: '+changes.map(c=>c.c).join(', ')+'.' : 'No expense categories currently warrant urgent review.',
+      reason: changes.length ? changes.map(c=>c.c+' is up '+Math.round(c.change)+'%').join('; ')+'.' : ''};
+  }
+  if(/cash balance.*next month|what will.*cash/i.test(qq) && !isP){
+    const cf = computeCashForecast();
+    return {answer:'Projected cash balance next month is approximately '+fmtINR(cf.forecast[0])+'.', reason:'Based on a trend model fitted to the last 12 months of cash position, revenue and expenses.'};
+  }
+  return {answer:"I looked at your recent data but couldn't map that to a specific metric yet. Try asking about expenses, cash flow, risk, payroll, or whether you can afford something specific.", };
+}
+
+/* ================= RENDER: REPORTS ================= */
+function renderReports(){
+  const isP = USER.accountType==='personal';
+  const reports = isP ? ['Financial Summary','Expense Report','Cash Flow Report','Savings Report'] :
+    ['Financial Summary','Revenue Report','Expense Report','Cash Flow Report','Receivables Report','Payables Report','Payroll Report','Anomaly Report','Risk Report'];
+  let html = '<div class="view-head"><div><h2>Reports</h2><p class="sub">Preview or export a snapshot of your data.</p></div></div>';
+  html += '<div class="grid grid-3">'+reports.map(r=>'<div class="card"><div class="card-title">'+r+'</div><div class="card-sub">Generated from current data</div>'+
+    '<div style="display:flex;gap:8px;margin-top:6px;"><button class="btn btn-outline btn-sm" onclick="previewReport(\''+r+'\')">Preview</button><button class="btn btn-ghost btn-sm" onclick="exportReport(\''+r+'\')">Export .txt</button></div></div>').join('')+'</div>';
+  document.getElementById('view-reports').innerHTML = html;
+}
+function reportText(name){
+  const isP = USER.accountType==='personal';
+  const risk = computeRisk();
+  let lines = [name.toUpperCase(), (isP?USER.name:USER.company)+' — generated '+new Date().toLocaleString('en-IN'), '='.repeat(40), ''];
+  if(isP){
+    lines.push('Income: '+fmtINR(DATA.incomeHist[DATA.incomeHist.length-1]));
+    lines.push('Expenses: '+fmtINR(DATA.expenseHist[DATA.expenseHist.length-1]));
+    lines.push('Balance: '+fmtINR(DATA.incomeHist[DATA.incomeHist.length-1]-DATA.expenseHist[DATA.expenseHist.length-1]));
+    lines.push('Risk score: '+risk.score+'/100 ('+risk.label+')');
+    lines.push('', 'Expense breakdown:');
+    Object.entries(DATA.catSpend).forEach(([k,v])=>lines.push('  '+k+': '+fmtINR(v)));
+  } else {
+    lines.push('Revenue: '+fmtINR(DATA.revHist[DATA.revHist.length-1]));
+    lines.push('Expenses: '+fmtINR(DATA.expHist[DATA.expHist.length-1]));
+    lines.push('Profit: '+fmtINR(DATA.revHist[DATA.revHist.length-1]-DATA.expHist[DATA.expHist.length-1]));
+    lines.push('Cash balance: '+fmtINR(DATA.cashBalance));
+    lines.push('Receivables: '+fmtINR(DATA.receivablesTotal)+' | Payables: '+fmtINR(DATA.payablesTotal)+' | Loans: '+fmtINR(DATA.loans));
+    lines.push('Risk score: '+risk.score+'/100 ('+risk.label+')');
+    lines.push('', 'Insights:');
+    computeInsights().forEach(i=>lines.push('  ['+i.sev.toUpperCase()+'] '+i.title));
+  }
+  return lines.join('\n');
+}
+function previewReport(name){ openModal('<h3>'+name+'</h3><pre style="white-space:pre-wrap;font-family:\'IBM Plex Mono\',monospace;font-size:12.5px;background:var(--paper);padding:16px;border-radius:8px;line-height:1.6;">'+reportText(name)+'</pre><button class="btn btn-primary btn-block" style="margin-top:16px;" onclick="closeModal()">Close</button>'); }
+function exportReport(name){ downloadText(name.replace(/\s+/g,'_')+'.txt', reportText(name)); showToast('Exported '+name+'.'); }
+
+/* ================= RENDER: SETTINGS ================= */
+function renderSettings(){
+  const isP = USER.accountType==='personal';
+  let html = '<div class="view-head"><div><h2>Settings</h2><p class="sub">Account and preference information.</p></div></div>';
+  html += '<div class="grid grid-2"><div class="card"><div class="card-title">Profile</div>'+
+    '<div class="field"><label>Full name</label><input value="'+USER.name+'" readonly></div>'+
+    '<div class="field"><label>Email</label><input value="'+USER.email+'" readonly></div>'+
+    '<div class="field"><label>Phone</label><input value="'+USER.phone+'" readonly></div>'+
+    (isP?'':'<div class="field"><label>Company</label><input value="'+USER.company+'" readonly></div><div class="field"><label>Business type</label><input value="'+USER.bizType+'" readonly></div>')+
+    '</div>'+
+    '<div class="card"><div class="card-title">Security</div><p style="font-size:13px;color:var(--slate);line-height:1.6;">Signed in with passwordless face verification. No password is stored for this account.</p>'+
+    '<button class="btn btn-outline btn-block" style="margin-top:14px;" onclick="showToast(\'Face re-registration would restart the camera flow (demo).\')">Re-register face</button>'+
+    '<button class="btn btn-ghost btn-block" style="margin-top:10px;" onclick="signOut()">Sign out</button></div></div>';
+  document.getElementById('view-settings').innerHTML = html;
+}
+
+/* ================= ENTER: press Enter on step 1 fields ================= */
+document.addEventListener('keydown', e=>{
+  if(e.key==='Enter' && document.getElementById('screen-signup').classList.contains('active') && !document.getElementById('signup-step-1').classList.contains('hidden')){
+    goSignupStep(2);
+  }
+});
+</script>
+</body>
+</html>
